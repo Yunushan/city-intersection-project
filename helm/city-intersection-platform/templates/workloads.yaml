@@ -48,7 +48,9 @@ spec:
           ports:
             {{- range $p := $svc.ports }}
             {{- if $p.range }}
-            {{- range $port := untilStep (int $p.range.start) (add (int $p.range.end) 1) 1 }}
+            {{- $rangeStart := int $p.range.start }}
+            {{- $rangeEnd := int (add $p.range.end 1) }}
+            {{- range $port := untilStep $rangeStart $rangeEnd 1 }}
             - name: {{ printf "%s-%d" ($p.range.namePrefix | default "tcp") $port | trunc 15 | trimSuffix "-" }}
               containerPort: {{ $port }}
               protocol: TCP
@@ -115,7 +117,9 @@ spec:
   ports:
     {{- range $p := $svc.ports }}
     {{- if $p.range }}
-    {{- range $port := untilStep (int $p.range.start) (add (int $p.range.end) 1) 1 }}
+    {{- $rangeStart := int $p.range.start }}
+    {{- $rangeEnd := int (add $p.range.end 1) }}
+    {{- range $port := untilStep $rangeStart $rangeEnd 1 }}
     - name: {{ printf "%s-%d" ($p.range.namePrefix | default "tcp") $port | trunc 15 | trimSuffix "-" }}
       port: {{ $port }}
       targetPort: {{ $port }}
