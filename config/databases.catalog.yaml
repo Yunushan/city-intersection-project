@@ -1,0 +1,101 @@
+source: https://endoflife.date/tags/database
+default: postgresql
+note: Profiles describe supported integration targets. Production HA may require the matching operator or managed service.
+profiles:
+  postgresql:
+    status: default
+    haProvider: cloudnative-pg
+    images:
+    - postgres:16.2
+  postgis:
+    status: default-for-spatial
+    haProvider: cloudnative-pg
+    images:
+    - postgis/postgis:16-3.4
+  timescaledb:
+    status: default-for-timeseries
+    haProvider: cloudnative-pg
+    images:
+    - timescale/timescaledb:latest-pg16
+  redis:
+    status: enabled
+    haProvider: sentinel|operator
+    images:
+    - redis:6.2
+  elasticsearch:
+    status: enabled-observability
+    haProvider: eck
+    images:
+    - elasticsearch:8.12.0
+  opensearch:
+    status: optional
+    haProvider: opensearch-operator|helm
+  clickhouse:
+    status: optional
+    haProvider: clickhouse-operator
+  graylog:
+    status: optional-log-platform
+    haProvider: graylog-chart|operator
+  mysql:
+    status: optional
+    haProvider: operator|managed
+  mariadb:
+    status: optional
+    haProvider: operator|managed
+  mongodb:
+    status: optional
+    haProvider: operator|managed
+  cassandra:
+    status: optional
+    haProvider: cass-operator
+  couchdb:
+    status: optional
+    haProvider: statefulset|operator
+  hbase:
+    status: optional
+    haProvider: operator|raw
+  hadoop:
+    status: optional
+    haProvider: operator|raw
+  arangodb:
+    status: optional
+    haProvider: arangodb-operator
+  cockroachdb:
+    status: optional
+    haProvider: cockroach-operator|helm
+  couchbase:
+    status: optional
+    haProvider: couchbase-operator
+  duckdb:
+    status: optional-embedded
+    haProvider: application-managed
+  etcd:
+    status: optional
+    haProvider: static-pods|operator
+  ibm-db2:
+    status: optional
+    haProvider: vendor
+  memcached:
+    status: optional-cache
+    haProvider: replicated-cache
+  microsoft-sql-server:
+    status: optional
+    haProvider: operator|managed
+  neo4j:
+    status: optional
+    haProvider: neo4j-helm
+  oracle-database:
+    status: optional
+    haProvider: vendor|managed
+  sqlite:
+    status: optional-dev-only
+    haProvider: not-ha
+  tarantool:
+    status: optional
+    haProvider: operator|raw
+  valkey:
+    status: optional-cache
+    haProvider: sentinel|operator
+  vitess:
+    status: optional-mysql-scaleout
+    haProvider: vitess-operator

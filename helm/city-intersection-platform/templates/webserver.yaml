@@ -1,0 +1,62 @@
+{{- $providerName := .Values.webserver.provider | default "nginx" -}}
+{{- $provider := index .Values.webserver.providers $providerName -}}
+{{- if $provider }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: webserver-{{ $providerName }}
+  namespace: {{ include "cip.namespace" . }}
+  labels:
+    {{- include "cip.labels" . | nindent 4 }}
+    app.kubernetes.io/name: webserver-{{ $providerName }}
+    city-intersection.io/component: webserver
+spec:
+  replicas: {{ $provider.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: webserver-{{ $providerName }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: webserver-{{ $providerName }}
+        app.kubernetes.io/part-of: city-intersection-project
+    spec:
+      containers:
+        - name: webserver
+          image: {{ include "cip.image" (list . $provider.image) | quote }}
+          imagePullPolicy: IfNotPresent
+          ports:
+            {{- range $p := $provider.ports }}
+            - name: {{ $p.name | quote }}
+              containerPort: {{ $p.containerPort }}
+            {{- end }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ (first $provider.ports).containerPort }}
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ (first $provider.ports).containerPort }}
+            initialDelaySeconds: 30
+            periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: webserver
+  namespace: {{ include "cip.namespace" . }}
+  labels:
+    app.kubernetes.io/name: webserver-{{ $providerName }}
+spec:
+  type: LoadBalancer
+  selector:
+    app.kubernetes.io/name: webserver-{{ $providerName }}
+  ports:
+    {{- range $p := $provider.ports }}
+    - name: {{ $p.name | quote }}
+      port: {{ $p.servicePort }}
+      targetPort: {{ $p.containerPort }}
+    {{- end }}
+{{- end }}

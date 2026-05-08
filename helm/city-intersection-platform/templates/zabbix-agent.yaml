@@ -1,0 +1,42 @@
+{{- if .Values.zabbixAgent.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zabbix-agent2
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  replicas: {{ .Values.zabbixAgent.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zabbix-agent2
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zabbix-agent2
+        app.kubernetes.io/part-of: city-intersection-project
+    spec:
+      containers:
+        - name: zabbix-agent2
+          image: {{ include "cip.image" (list . .Values.zabbixAgent.image) | quote }}
+          ports:
+            {{- range .Values.zabbixAgent.ports }}
+            - name: {{ .name | quote }}
+              containerPort: {{ .containerPort }}
+            {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-agent2
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/name: zabbix-agent2
+  ports:
+    {{- range .Values.zabbixAgent.ports }}
+    - name: {{ .name | quote }}
+      port: {{ .servicePort }}
+      targetPort: {{ .containerPort }}
+    {{- end }}
+{{- end }}

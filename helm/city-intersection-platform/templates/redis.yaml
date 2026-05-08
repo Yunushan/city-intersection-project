@@ -1,0 +1,107 @@
+{{- if .Values.messaging.redis.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-bootstrap
+  namespace: {{ include "cip.namespace" . }}
+data:
+  redis.conf: |
+    appendonly yes
+    protected-mode no
+  sentinel.conf: |
+    port 26379
+    sentinel monitor mymaster redis-0.redis-headless.{{ include "cip.namespace" . }}.svc.cluster.local 6379 2
+    sentinel down-after-milliseconds mymaster 5000
+    sentinel failover-timeout mymaster 10000
+    sentinel parallel-syncs mymaster 1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis-headless
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - name: redis
+      port: {{ .Values.messaging.redis.port }}
+    - name: sentinel
+      port: {{ .Values.messaging.redis.sentinel.port }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: redis
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  serviceName: redis-headless
+  replicas: {{ .Values.messaging.redis.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: redis
+        app.kubernetes.io/part-of: city-intersection-project
+    spec:
+      containers:
+        - name: redis
+          image: {{ include "cip.image" (list . .Values.messaging.redis.image) | quote }}
+          command: ["/bin/sh", "-ec"]
+          args:
+            - |
+              if [ "${HOSTNAME##*-}" != "0" ]; then
+                redis-server /config/redis.conf --replicaof redis-0.redis-headless 6379
+              else
+                redis-server /config/redis.conf
+              fi
+          ports:
+            - name: redis
+              containerPort: {{ .Values.messaging.redis.port }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+            - name: data
+              mountPath: /data
+        - name: sentinel
+          image: {{ include "cip.image" (list . .Values.messaging.redis.image) | quote }}
+          command: ["redis-sentinel", "/config/sentinel.conf"]
+          ports:
+            - name: sentinel
+              containerPort: {{ .Values.messaging.redis.sentinel.port }}
+          volumeMounts:
+            - name: config
+              mountPath: /config
+      volumes:
+        - name: config
+          configMap:
+            name: redis-bootstrap
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.messaging.redis.storage.size | default "10Gi" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/name: redis
+  ports:
+    - name: redis
+      port: {{ .Values.messaging.redis.port }}
+      targetPort: redis
+    - name: sentinel
+      port: {{ .Values.messaging.redis.sentinel.port }}
+      targetPort: sentinel
+{{- end }}

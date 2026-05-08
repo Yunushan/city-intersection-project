@@ -1,0 +1,20 @@
+---
+- name: Create K3s config directory
+  ansible.builtin.file:
+    path: /etc/rancher/k3s
+    state: directory
+    mode: '0755'
+
+- name: Render K3s config
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/k3s/config.yaml
+    mode: '0600'
+
+- name: Install K3s server or agent
+  ansible.builtin.shell: |
+    set -euo pipefail
+    curl -sfL https://get.k3s.io | INSTALL_K3S_EXEC="{{ 'server' if inventory_hostname in groups['rke2_servers'] else 'agent' }}" sh -
+  args:
+    executable: /bin/bash
+    creates: /usr/local/bin/k3s

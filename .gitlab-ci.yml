@@ -1,0 +1,44 @@
+stages:
+  - validate
+  - render
+  - policy
+  - security
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+
+validate:
+  stage: validate
+  image: python:3.12-slim
+  script:
+    - pip install pyyaml
+    - python3 scripts/validate.py
+
+render:
+  stage: render
+  image: alpine/helm:3.15.3
+  script:
+    - helm lint helm/city-intersection-platform
+    - helm template city-intersection-project helm/city-intersection-platform -n city-intersection -f helm/city-intersection-platform/values.yaml > rendered.yaml
+  artifacts:
+    paths:
+      - rendered.yaml
+
+policy:
+  stage: policy
+  image: python:3.12-slim
+  needs: [render]
+  script:
+    - pip install pyyaml
+    - python3 tests/policy/basic_policy.py rendered.yaml
+
+security:
+  stage: security
+  image: aquasec/trivy:latest
+  script:
+    - trivy fs --ignore-unfixed --severity HIGH,CRITICAL --exit-code 0 .
+  allow_failure: true

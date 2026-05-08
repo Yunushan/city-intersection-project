@@ -1,0 +1,9 @@
+---
+- name: Install common FreeBSD packages for raw/LB profiles
+  community.general.pkgng:
+    name:
+      - curl
+      - jq
+      - bash
+      - haproxy
+    state: present

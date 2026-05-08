@@ -1,0 +1,203 @@
+{{- if .Values.messaging.kafka.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zookeeper-headless
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: zookeeper
+  ports:
+    - name: client
+      port: 2181
+    - name: peer
+      port: 2888
+    - name: election
+      port: 3888
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: zookeeper
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  serviceName: zookeeper-headless
+  replicas: {{ .Values.messaging.kafka.zookeeper.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: zookeeper
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: zookeeper
+        app.kubernetes.io/part-of: city-intersection-project
+    spec:
+      containers:
+        - name: zookeeper
+          image: {{ include "cip.image" (list . .Values.messaging.kafka.zookeeper.image) | quote }}
+          command: ["/bin/bash", "-ec"]
+          args:
+            - |
+              export ZOOKEEPER_SERVER_ID=$(( ${HOSTNAME##*-} + 1 ))
+              exec /etc/confluent/docker/run
+          env:
+            - name: ZOOKEEPER_CLIENT_PORT
+              value: "2181"
+            - name: ZOOKEEPER_TICK_TIME
+              value: "2000"
+            - name: ZOOKEEPER_SERVERS
+              value: "zookeeper-0.zookeeper-headless:2888:3888;zookeeper-1.zookeeper-headless:2888:3888;zookeeper-2.zookeeper-headless:2888:3888"
+          ports:
+            - containerPort: 2181
+              name: client
+            - containerPort: 2888
+              name: peer
+            - containerPort: 3888
+              name: election
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.messaging.kafka.zookeeper.storage.size | default "10Gi" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-headless
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: kafka
+  ports:
+    - name: client
+      port: {{ .Values.messaging.kafka.ports.client }}
+    - name: external
+      port: {{ .Values.messaging.kafka.ports.external }}
+    - name: jmx
+      port: {{ .Values.messaging.kafka.ports.jmx }}
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: kafka
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  serviceName: kafka-headless
+  replicas: {{ .Values.messaging.kafka.replicas | default 3 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kafka
+        app.kubernetes.io/part-of: city-intersection-project
+    spec:
+      containers:
+        - name: kafka
+          image: {{ include "cip.image" (list . .Values.messaging.kafka.image) | quote }}
+          env:
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: KAFKA_BROKER_ID_COMMAND
+              value: "hostname | awk -F'-' '{print $$NF}'"
+            - name: KAFKA_ZOOKEEPER_CONNECT
+              value: "zookeeper-0.zookeeper-headless:2181,zookeeper-1.zookeeper-headless:2181,zookeeper-2.zookeeper-headless:2181"
+            - name: KAFKA_LISTENER_SECURITY_PROTOCOL_MAP
+              value: "PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT"
+            - name: KAFKA_LISTENERS
+              value: "PLAINTEXT://0.0.0.0:9092,EXTERNAL://0.0.0.0:29092"
+            - name: KAFKA_ADVERTISED_LISTENERS
+              value: "PLAINTEXT://$(POD_NAME).kafka-headless:9092,EXTERNAL://$(POD_NAME).kafka-headless:29092"
+            - name: KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR
+              value: "3"
+            - name: KAFKA_TRANSACTION_STATE_LOG_MIN_ISR
+              value: "2"
+          ports:
+            - containerPort: 9092
+              name: client
+            - containerPort: 29092
+              name: external
+            - containerPort: 29094
+              name: jmx
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.messaging.kafka.storage.size | default "50Gi" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/name: kafka
+  ports:
+    - name: client
+      port: 9092
+      targetPort: 9092
+    - name: external
+      port: 29092
+      targetPort: 29092
+    - name: jmx
+      port: 29094
+      targetPort: 29094
+{{- if .Values.messaging.kafka.ui.enabled }}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: kafka-ui
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  replicas: {{ .Values.messaging.kafka.ui.replicas | default 2 }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kafka-ui
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kafka-ui
+        app.kubernetes.io/part-of: city-intersection-project
+    spec:
+      containers:
+        - name: kafka-ui
+          image: {{ include "cip.image" (list . .Values.messaging.kafka.ui.image) | quote }}
+          env:
+            - name: KAFKA_CLUSTERS_0_NAME
+              value: city-intersection
+            - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
+              value: kafka:9092
+          ports:
+            - name: http
+              containerPort: {{ .Values.messaging.kafka.ui.port | default 8080 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: kafka-ui
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  selector:
+    app.kubernetes.io/name: kafka-ui
+  ports:
+    - name: http
+      port: {{ .Values.messaging.kafka.ui.port | default 8080 }}
+      targetPort: {{ .Values.messaging.kafka.ui.port | default 8080 }}
+{{- end }}
+{{- end }}

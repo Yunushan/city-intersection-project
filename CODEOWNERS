@@ -1,0 +1,6 @@
+# Adjust owners after pushing to GitHub/GitLab.
+* @platform-team
+/helm/ @platform-team
+/ansible/ @platform-team
+/config/ @platform-team
+/docs/ @platform-team

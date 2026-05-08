@@ -1,0 +1,30 @@
+default: nginx
+providers:
+  nginx:
+    image: nginx:1.18
+    ports:
+    - 80
+    - 443
+    ingressClass: nginx
+    status: default
+  apache-httpd:
+    image: httpd:2.4
+    ports:
+    - 80
+    - 443
+    ingressClass: apache
+    status: supported
+  apache-tomcat:
+    image: tomcat:10.1
+    ports:
+    - 8080
+    ingressClass: tomcat
+    status: supported
+  traefik:
+    image: traefik:v3.1
+    ports:
+    - 80
+    - 443
+    - 8080
+    ingressClass: traefik
+    status: supported

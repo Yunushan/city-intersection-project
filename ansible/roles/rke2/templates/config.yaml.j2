@@ -1,0 +1,12 @@
+token: "{{ rke2_token }}"
+tls-san:
+  - "{{ cluster_vip }}"
+  - "{{ cluster_domain }}"
+node-ip: "{{ node_ip | default(ansible_host) }}"
+write-kubeconfig-mode: "0644"
+cni: canal
+cluster-cidr: "{{ pod_cidr | default('10.42.0.0/16') }}"
+service-cidr: "{{ service_cidr | default('10.43.0.0/16') }}"
+{% if inventory_hostname != groups['rke2_servers'][0] %}
+server: "https://{{ cluster_vip }}:9345"
+{% endif %}

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: city-intersection-service-catalog
+  namespace: {{ include "cip.namespace" . }}
+  labels:
+    {{- include "cip.labels" . | nindent 4 }}
+data:
+  service-count: {{ len .Values.workloads | quote }}
+  database-provider: {{ .Values.databases.provider | quote }}
+  webserver-provider: {{ .Values.webserver.provider | quote }}
+  observability-profile: {{ .Values.observability.profile | quote }}

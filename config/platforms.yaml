@@ -1,0 +1,22 @@
+defaultOs: ubuntu-24.04
+linuxProductionNodes:
+- ubuntu-24.04
+- debian-12
+- rhel-9
+- rocky-linux-9
+- alma-linux-9
+- centos-stream-9
+legacyOrCompatibility:
+- centos-7-with-extended-support
+- centos-8-stream-legacy
+bsdRawOrLbProfiles:
+- freebsd
+- netbsd
+- openbsd
+workstationProfiles:
+- macos
+- windows-10-11
+- windows-server
+- wsl2
+note: Kubernetes production nodes are Linux-first. BSD/macOS/Windows are supported as operator workstations, Docker Desktop/WSL
+  profiles, load-balancer/raw profiles, or Windows-container nodes where applicable.

@@ -1,0 +1,20 @@
+apiVersion: v2
+name: city-intersection-platform
+description: Enterprise HA Helm chart for the city-intersection-project application and platform stack.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - smart-city
+  - intersection
+  - rke2
+  - high-availability
+  - kubernetes
+home: https://example.com/city-intersection-project
+sources:
+  - https://example.com/city-intersection-project
+maintainers:
+  - name: city-intersection-project contributors
+    email: platform@example.com
+annotations:
+  artifacthub.io/license: MIT

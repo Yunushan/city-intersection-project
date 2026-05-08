@@ -1,0 +1,13 @@
+---
+- name: Install common RHEL/Rocky/Alma/CentOS packages
+  ansible.builtin.dnf:
+    name:
+      - curl
+      - ca-certificates
+      - iptables
+      - iproute
+      - nfs-utils
+      - iscsi-initiator-utils
+      - jq
+      - unzip
+    state: present

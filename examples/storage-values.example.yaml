@@ -1,0 +1,17 @@
+databases:
+  instances:
+    db-04-postgres:
+      storage:
+        className: fast-ssd
+        size: 50Gi
+messaging:
+  kafka:
+    storage:
+      className: fast-ssd
+      size: 200Gi
+observability:
+  elasticsearch:
+    nodeSets:
+      - name: default
+        count: 3
+        storage: 500Gi

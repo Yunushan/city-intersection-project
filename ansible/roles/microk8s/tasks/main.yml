@@ -1,0 +1,18 @@
+---
+- name: Install snapd on Debian-like systems
+  ansible.builtin.package:
+    name: snapd
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Install MicroK8s
+  community.general.snap:
+    name: microk8s
+    classic: true
+    state: present
+  when: ansible_os_family == 'Debian'
+
+- name: Enable MicroK8s HA-related addons on first node
+  ansible.builtin.command: microk8s enable dns hostpath-storage ingress metrics-server
+  when: inventory_hostname == groups['rke2_servers'][0]
+  changed_when: false

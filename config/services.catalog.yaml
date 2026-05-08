@@ -1,0 +1,500 @@
+source: sanitized sample service catalog
+project: city-intersection-project
+defaults:
+  replicas: 3
+  namespace: city-intersection
+images:
+- name: app-01
+  image: example-app-01:latest
+  category: realtime
+  type: application
+  replicas: 3
+  ports:
+  - 5013
+  - 5021
+- name: app-02
+  image: example-app-02:latest
+  category: smart-city
+  type: application
+  replicas: 3
+  ports:
+  - 5006
+- name: app-03
+  image: example-app-03:latest
+  category: proxy
+  type: application
+  replicas: 3
+  ports:
+  - 5019
+  - 3000
+- name: app-04
+  image: example-app-04:latest
+  category: proxy
+  type: application
+  replicas: 3
+  ports:
+  - 5020
+  - 3001
+- name: app-05
+  image: example-app-05:latest
+  category: core
+  type: application
+  replicas: 3
+  ports:
+  - 5004
+- name: app-06
+  image: example-app-06:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5023
+- name: app-07
+  image: example-app-07:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5036
+- name: app-08
+  image: example-app-08:latest
+  category: worker
+  type: application
+  replicas: 3
+  ports:
+  - 5037
+- name: app-09
+  image: example-app-09:latest
+  category: mobility
+  type: application
+  replicas: 3
+  ports:
+  - 5009
+- name: app-10
+  image: example-app-10:latest
+  category: traffic-counts
+  type: application
+  replicas: 3
+  ports:
+  - 5032
+- name: app-11
+  image: example-app-11:latest
+  category: camera
+  type: application
+  replicas: 3
+  ports:
+  - 5040
+- name: app-12
+  image: example-app-12:latest
+  category: worker
+  type: application
+  replicas: 3
+  ports:
+  - 5031
+- name: app-13
+  image: example-app-13:latest
+  category: ticketing
+  type: application
+  replicas: 3
+  ports:
+  - 5010
+- name: app-14
+  image: example-app-14:latest
+  category: monitoring
+  type: application
+  replicas: 3
+  ports:
+  - 5024
+- name: app-15
+  image: example-app-15:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - range:
+      start: 4000
+      end: 4199
+      namePrefix: app
+- name: app-16
+  image: example-app-16:latest
+  category: logging
+  type: application
+  replicas: 3
+  ports:
+  - 5021
+- name: app-17
+  image: example-app-17:latest
+  category: camera
+  type: application
+  replicas: 3
+  ports:
+  - 5035
+- name: app-18
+  image: example-app-18:latest
+  category: core
+  type: application
+  replicas: 3
+  ports:
+  - 5005
+- name: app-19
+  image: example-app-19:latest
+  category: identity
+  type: application
+  replicas: 3
+  ports:
+  - 5001
+- name: app-20
+  image: example-app-20:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5029
+- name: app-21
+  image: example-app-21:latest
+  category: automation
+  type: application
+  replicas: 3
+  ports:
+  - 5030
+- name: app-22
+  image: example-app-22:latest
+  category: worker
+  type: application
+  replicas: 3
+  ports:
+  - 5025
+- name: app-23
+  image: example-app-23:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5027
+- name: app-24
+  image: example-app-24:latest
+  category: worker
+  type: application
+  replicas: 3
+  ports:
+  - 5034
+- name: app-25
+  image: example-app-25:latest
+  category: mobility
+  type: application
+  replicas: 3
+  ports:
+  - 5008
+- name: app-26
+  image: example-app-26:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5028
+- name: app-27
+  image: example-app-27:latest
+  category: gateway
+  type: application
+  replicas: 3
+  ports:
+  - 5000
+- name: app-28
+  image: example-app-28:latest
+  category: mobility
+  type: application
+  replicas: 3
+  ports:
+  - 5011
+- name: app-29
+  image: example-app-29:latest
+  category: mobility
+  type: application
+  replicas: 3
+  ports:
+  - 5007
+- name: app-30
+  image: example-app-30:latest
+  category: worker
+  type: application
+  replicas: 3
+  ports:
+  - 5038
+- name: app-31
+  image: example-app-31:latest
+  category: worker
+  type: application
+  replicas: 3
+  ports:
+  - 5026
+- name: app-32
+  image: example-app-32:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5022
+- name: app-33
+  image: example-app-33:latest
+  category: asset-management
+  type: application
+  replicas: 3
+  ports:
+  - 5002
+- name: app-34
+  image: example-app-34:latest
+  category: core
+  type: application
+  replicas: 3
+  ports:
+  - 5003
+- name: app-35
+  image: example-app-35:latest
+  category: dashboard
+  type: application
+  replicas: 3
+  ports:
+  - 5033
+- name: app-36
+  image: example-app-36:latest
+  category: traffic-controller
+  type: application
+  replicas: 3
+  ports:
+  - 5017
+- name: app-37
+  image: example-app-37:latest
+  category: camera
+  type: application
+  replicas: 3
+  ports:
+  - 5015
+- name: app-38
+  image: example-app-38:latest
+  category: realtime
+  type: application
+  replicas: 3
+  ports:
+  - 5018
+- name: webserver-nginx
+  image: nginx:1.18
+  category: webserver
+  type: web
+  ports:
+  - 80
+  - 443
+  replicas: 3
+- name: kafka
+  image: confluentinc/cp-kafka:7.5.0
+  category: messaging
+  type: stateful
+  ports:
+  - 9092
+  - 29092
+  - 29094
+  replicas: 3
+- name: zookeeper
+  image: confluentinc/cp-zookeeper:latest
+  category: messaging
+  type: stateful
+  ports:
+  - 2181
+  - 2888
+  - 3888
+  replicas: 3
+- name: kafka-ui
+  image: provectuslabs/kafka-ui:latest
+  category: messaging
+  type: application
+  ports:
+  - 8080
+  replicas: 2
+- name: redis
+  image: redis:6.2
+  category: cache
+  type: stateful
+  ports:
+  - 6379
+  replicas: 3
+- name: redis-sentinel
+  image: redis:6.2
+  category: cache
+  type: stateful
+  ports:
+  - 26379
+  replicas: 3
+- name: elasticsearch
+  image: elasticsearch:8.12.0
+  category: observability
+  type: stateful
+  ports:
+  - 9200
+  - 9300
+  replicas: 3
+- name: kibana
+  image: kibana:8.12.0
+  category: observability
+  type: application
+  ports:
+  - 5601
+  replicas: 2
+- name: logstash
+  image: logstash:8.12.0
+  category: observability
+  type: application
+  ports:
+  - 5044
+  - 9600
+  replicas: 2
+- name: zabbix-agent2
+  image: zabbix/zabbix-agent2:latest
+  category: monitoring
+  type: daemon-or-deployment
+  ports:
+  - 10050
+  - 31999
+  replicas: 3
+- name: db-01-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5451
+  - 5432
+  replicas: 3
+- name: db-02-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5452
+  - 5432
+  replicas: 3
+- name: db-03-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5439
+  - 5432
+  replicas: 3
+- name: db-04-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5433
+  - 5432
+  replicas: 3
+- name: db-05-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5450
+  - 5432
+  replicas: 3
+- name: db-06-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5435
+  - 5432
+  replicas: 3
+- name: db-07-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5446
+  - 5432
+  replicas: 3
+- name: db-08-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5432
+  - 5432
+  replicas: 3
+- name: db-09-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5434
+  - 5432
+  replicas: 3
+- name: db-10-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5441
+  - 5432
+  replicas: 3
+- name: db-11-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5437
+  - 5432
+  replicas: 3
+- name: db-12-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5449
+  - 5432
+  replicas: 3
+- name: db-13-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5444
+  - 5432
+  replicas: 3
+- name: db-14-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5436
+  - 5432
+  replicas: 3
+- name: db-15-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5440
+  - 5432
+  replicas: 3
+- name: db-16-postgres
+  image: postgres:16.2
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5443
+  - 5432
+  replicas: 3
+- name: db-17-postgis
+  image: postgis/postgis:16-3.4
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5438
+  - 5432
+  replicas: 3
+- name: timescaledb
+  image: timescale/timescaledb:latest-pg16
+  category: database
+  type: cloudnative-pg
+  ports:
+  - 5448
+  - 5432
+  replicas: 3

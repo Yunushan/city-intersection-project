@@ -1,0 +1,44 @@
+default: elasticsearch
+profiles:
+  grafana:
+    enabled: true
+    purpose: dashboards
+  loki:
+    enabled: false
+    purpose: logs
+    defaultRetention: 30d
+  elasticsearch:
+    enabled: true
+    purpose: search/log analytics
+    version: 8.12.0
+  opensearch:
+    enabled: false
+    purpose: search/log analytics
+  graylog:
+    enabled: false
+    purpose: log management/SIEM-like workflows
+  clickhouse:
+    enabled: false
+    purpose: analytics/time-series/log warehouse
+pipelines:
+  default:
+  - logstash
+  - elasticsearch
+  - kibana
+  loki:
+  - promtail|alloy
+  - loki
+  - grafana
+  opensearch:
+  - logstash|fluent-bit
+  - opensearch
+  - opensearch-dashboards
+  graylog:
+  - beats|sidecar
+  - graylog
+  - mongodb
+  - opensearch
+  clickhouse:
+  - vector|fluent-bit
+  - clickhouse
+  - grafana

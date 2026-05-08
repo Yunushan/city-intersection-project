@@ -1,0 +1,44 @@
+---
+- name: Install selected cluster engine
+  hosts: cluster_nodes
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Show selected cluster engine
+      ansible.builtin.debug:
+        msg: "Installing cluster engine: {{ cluster_engine | default('rke2') }}"
+
+- name: Install RKE2
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - role: rke2
+      when: cluster_engine | default('rke2') == 'rke2'
+
+- name: Install K3s
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - role: k3s
+      when: cluster_engine | default('rke2') == 'k3s'
+
+- name: Install MicroK8s
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - role: microk8s
+      when: cluster_engine | default('rke2') == 'microk8s'
+
+- name: Install Docker runtime profile
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - role: docker_runtime
+      when: cluster_engine | default('rke2') == 'docker'
+
+- name: Prepare raw installation profile
+  hosts: cluster_nodes
+  become: true
+  roles:
+    - role: raw_install
+      when: cluster_engine | default('rke2') == 'raw'

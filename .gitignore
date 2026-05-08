@@ -1,0 +1,66 @@
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Secrets and env
+.env
+.env.*
+!.env.example
+*.env
+*.key
+*.pem
+*.p12
+*.kubeconfig
+secrets/*
+!secrets/.gitkeep
+*.age
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+.terraform.lock.hcl
+
+# Ansible
+*.retry
+ansible/.vault_pass
+inventories/prod/*
+!inventories/prod/.gitkeep
+
+# Helm/Kubernetes
+*.tgz
+charts/
+rendered/
+.kube/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs and artifacts
+logs/
+dist/
+build/
+coverage/
+reports/
+data/
+exports/
+*.bak
+*.backup
+*.dump
+*.sql
+*.sqlite
+*.sqlite3
+*.db
+*.har
+*.pcap
+*.tar
+*.tar.gz
+*.zip

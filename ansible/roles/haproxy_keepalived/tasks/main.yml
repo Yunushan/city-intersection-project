@@ -1,0 +1,34 @@
+---
+- name: Install HAProxy and Keepalived
+  ansible.builtin.package:
+    name:
+      - haproxy
+      - keepalived
+    state: present
+  when: ansible_system == 'Linux'
+
+- name: Configure HAProxy for RKE2/Kubernetes API and registration ports
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: '0644'
+  notify: Restart haproxy
+  when: ansible_system == 'Linux'
+
+- name: Configure Keepalived virtual IP
+  ansible.builtin.template:
+    src: keepalived.conf.j2
+    dest: /etc/keepalived/keepalived.conf
+    mode: '0644'
+  notify: Restart keepalived
+  when: ansible_system == 'Linux'
+
+- name: Enable HA services
+  ansible.builtin.service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - haproxy
+    - keepalived
+  when: ansible_system == 'Linux'

@@ -1,0 +1,31 @@
+{{- if and .Values.databases.enabled (eq .Values.databases.provider "cloudnative-pg") }}
+{{- range $name, $db := .Values.databases.instances }}
+{{- if $db.enabled }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "cip.namespace" $ }}
+  labels:
+    {{- include "cip.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+    city-intersection.io/database-engine: {{ $db.engine | quote }}
+spec:
+  instances: {{ $db.instances | default $.Values.databases.defaultInstances }}
+  imageName: {{ include "cip.image" (list $ $db.image) | quote }}
+  primaryUpdateStrategy: unsupervised
+  bootstrap:
+    initdb:
+      database: {{ $db.database | quote }}
+      owner: {{ $db.owner | quote }}
+  storage:
+    size: {{ $db.storage.size | default "20Gi" }}
+    {{- if $db.storage.className }}
+    storageClass: {{ $db.storage.className | quote }}
+    {{- end }}
+  monitoring:
+    enablePodMonitor: true
+{{- end }}
+{{- end }}
+{{- end }}

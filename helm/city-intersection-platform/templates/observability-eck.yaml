@@ -1,0 +1,49 @@
+{{- if and .Values.observability.elasticsearch.enabled (eq .Values.observability.elasticsearch.mode "eck") }}
+---
+apiVersion: elasticsearch.k8s.elastic.co/v1
+kind: Elasticsearch
+metadata:
+  name: {{ .Values.observability.elasticsearch.name }}
+  namespace: {{ include "cip.namespace" . }}
+  labels:
+    {{- include "cip.labels" . | nindent 4 }}
+spec:
+  version: {{ .Values.observability.elasticsearch.version | quote }}
+  image: {{ include "cip.image" (list . .Values.observability.elasticsearch.image) | quote }}
+  nodeSets:
+    {{- range .Values.observability.elasticsearch.nodeSets }}
+    - name: {{ .name }}
+      count: {{ .count }}
+      config:
+        node.store.allow_mmap: false
+      volumeClaimTemplates:
+        - metadata:
+            name: elasticsearch-data
+          spec:
+            accessModes: ["ReadWriteOnce"]
+            resources:
+              requests:
+                storage: {{ .storage | default "100Gi" }}
+    {{- end }}
+{{- end }}
+{{- if and .Values.observability.kibana.enabled (eq .Values.observability.kibana.mode "eck") }}
+---
+apiVersion: kibana.k8s.elastic.co/v1
+kind: Kibana
+metadata:
+  name: city-kibana
+  namespace: {{ include "cip.namespace" . }}
+spec:
+  version: {{ .Values.observability.kibana.version | quote }}
+  image: {{ include "cip.image" (list . .Values.observability.kibana.image) | quote }}
+  count: {{ .Values.observability.kibana.count | default 2 }}
+  elasticsearchRef:
+    name: {{ .Values.observability.elasticsearch.name }}
+  http:
+    service:
+      spec:
+        ports:
+          - name: http
+            port: {{ .Values.observability.kibana.port | default 5601 }}
+            targetPort: 5601
+{{- end }}

@@ -1,0 +1,15 @@
+---
+- name: Deploy city-intersection Helm release
+  hosts: localhost
+  gather_facts: false
+  vars:
+    namespace: city-intersection
+  tasks:
+    - name: Deploy Helm chart
+      kubernetes.core.helm:
+        name: city-intersection-project
+        chart_ref: helm/city-intersection-platform
+        release_namespace: "{{ namespace }}"
+        create_namespace: true
+        values_files:
+          - helm/city-intersection-platform/values.yaml

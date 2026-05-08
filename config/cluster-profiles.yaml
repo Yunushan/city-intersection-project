@@ -1,0 +1,80 @@
+default: rke2
+profiles:
+  rke2:
+    enabled: true
+    default: true
+    nodes: 3
+    ha:
+      vip: true
+      haproxy: true
+      keepalived: true
+      embeddedEtcd: true
+    supportedNodeOs:
+    - ubuntu-24.04
+    - debian-12
+    - rhel-9
+    - rocky-9
+    - alma-9
+    - centos-stream-9
+    installRole: ansible/roles/rke2
+    notes: Default production profile. Use a fixed registration address and three server nodes.
+  k3s:
+    enabled: true
+    nodes: 3
+    ha:
+      vip: true
+      haproxy: true
+      keepalived: true
+      externalDatastore: postgresql|mysql|etcd
+    supportedNodeOs:
+    - ubuntu-24.04
+    - debian-12
+    - rhel-9
+    - rocky-9
+    - alma-9
+    installRole: ansible/roles/k3s
+  microk8s:
+    enabled: true
+    nodes: 3
+    ha:
+      microk8sHaClusterAddon: true
+    supportedNodeOs:
+    - ubuntu-24.04
+    - ubuntu-22.04
+    - debian-12
+    installRole: ansible/roles/microk8s
+  docker:
+    enabled: true
+    ha:
+      swarmMode: true
+      composeFallback: true
+    supportedNodeOs:
+    - ubuntu-24.04
+    - debian-12
+    - rhel-9
+    - rocky-9
+    - alma-9
+    - windows-server-with-docker
+    - macos-docker-desktop
+    composeFile: compose/docker-compose.ha.yml
+  raw:
+    enabled: true
+    ha:
+      systemd: true
+      nssmWindows: true
+      bsdRcD: true
+    supportedOs:
+    - ubuntu-24.04
+    - debian
+    - rhel
+    - rockylinux
+    - almalinux
+    - centos
+    - centos-stream
+    - freebsd
+    - netbsd
+    - openbsd
+    - macos
+    - windows
+    - windows-server
+    notes: Raw profile is scaffolding for installing service binaries outside Kubernetes/Docker.

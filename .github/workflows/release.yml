@@ -1,0 +1,22 @@
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+      - name: Package Helm chart
+        run: |
+          mkdir -p dist
+          helm package helm/city-intersection-platform -d dist
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: city-intersection-platform-chart
+          path: dist/*.tgz

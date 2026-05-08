@@ -1,0 +1,33 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "global": {
+      "type": "object"
+    },
+    "namespace": {
+      "type": "object"
+    },
+    "webserver": {
+      "type": "object"
+    },
+    "workloads": {
+      "type": "object"
+    },
+    "databases": {
+      "type": "object"
+    },
+    "observability": {
+      "type": "object"
+    },
+    "messaging": {
+      "type": "object"
+    }
+  },
+  "required": [
+    "global",
+    "namespace",
+    "webserver",
+    "workloads"
+  ]
+}

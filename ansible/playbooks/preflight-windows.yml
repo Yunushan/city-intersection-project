@@ -1,0 +1,15 @@
+---
+- name: Windows workstation/container-node preflight
+  hosts: windows
+  gather_facts: true
+  tasks:
+    - name: Ensure Chocolatey is present
+      chocolatey.chocolatey.win_chocolatey:
+        name: chocolatey
+        state: present
+    - name: Install kubectl and helm
+      chocolatey.chocolatey.win_chocolatey:
+        name:
+          - kubernetes-cli
+          - kubernetes-helm
+        state: present

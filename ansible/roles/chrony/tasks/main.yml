@@ -1,0 +1,29 @@
+---
+- name: Install chrony
+  ansible.builtin.package:
+    name: chrony
+    state: present
+  when: ansible_system == 'Linux'
+
+- name: Deploy chrony configuration
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony/chrony.conf
+    mode: '0644'
+  when: ansible_os_family == 'Debian'
+  notify: Restart chrony
+
+- name: Deploy chrony configuration for RedHat family
+  ansible.builtin.template:
+    src: chrony.conf.j2
+    dest: /etc/chrony.conf
+    mode: '0644'
+  when: ansible_os_family == 'RedHat'
+  notify: Restart chronyd
+
+- name: Enable chrony service
+  ansible.builtin.service:
+    name: "{{ 'chronyd' if ansible_os_family == 'RedHat' else 'chrony' }}"
+    enabled: true
+    state: started
+  when: ansible_system == 'Linux'

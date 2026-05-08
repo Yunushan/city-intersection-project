@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  validate:
+    cmds:
+      - python3 scripts/validate.py
+  configure:
+    vars:
+      ENGINE: '{{.ENGINE | default "rke2"}}'
+      WEB: '{{.WEB | default "nginx"}}'
+      DB: '{{.DB | default "postgresql"}}'
+      OBS: '{{.OBS | default "elasticsearch"}}'
+    cmds:
+      - python3 scripts/configure.py --engine {{.ENGINE}} --webserver {{.WEB}} --database {{.DB}} --observability {{.OBS}}
+  deploy:
+    cmds:
+      - helm upgrade --install city-intersection-project helm/city-intersection-platform --namespace city-intersection --create-namespace -f helm/city-intersection-platform/values.yaml

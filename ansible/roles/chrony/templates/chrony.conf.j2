@@ -1,0 +1,6 @@
+{% for server in chrony_servers | default(['pool.ntp.org iburst']) %}
+server {{ server }}
+{% endfor %}
+makestep 1.0 3
+rtcsync
+logdir /var/log/chrony

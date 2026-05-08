@@ -1,0 +1,3 @@
+token: "{{ rke2_token }}"
+server: "https://{{ cluster_vip }}:9345"
+node-ip: "{{ node_ip | default(ansible_host) }}"

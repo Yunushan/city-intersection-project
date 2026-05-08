@@ -1,0 +1,1767 @@
+global:
+  projectName: city-intersection-project
+  environment: production
+  imageRegistry: ''
+  imagePullSecrets: []
+  defaultReplicas: 3
+  cluster:
+    engine: rke2
+    nodes: 3
+    defaultOs: ubuntu-24.04
+    vip: 192.0.2.10
+    domain: city-intersection.example
+  security:
+    runAsNonRoot: true
+    readOnlyRootFilesystem: false
+    allowPrivilegeEscalation: false
+  scheduling:
+    topologySpread: true
+    antiAffinity: preferred
+namespace:
+  create: true
+  name: city-intersection
+  podSecurity: baseline
+ingress:
+  enabled: true
+  className: nginx
+  host: city-intersection.example
+  tls:
+    enabled: false
+    secretName: city-intersection-tls
+autoscaling:
+  enabled: true
+  default:
+    minReplicas: 3
+    maxReplicas: 9
+    targetCPUUtilizationPercentage: 70
+networkPolicy:
+  enabled: true
+webserver:
+  provider: nginx
+  providers:
+    nginx:
+      enabled: true
+      displayName: nginx
+      image:
+        repository: nginx
+        tag: '1.18'
+      replicas: 3
+      ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+      - name: https
+        containerPort: 443
+        servicePort: 443
+      configTemplate: nginx.conf
+    apache-httpd:
+      enabled: false
+      displayName: Apache HTTP Server
+      image:
+        repository: httpd
+        tag: '2.4'
+      replicas: 3
+      ports:
+      - name: http
+        containerPort: 80
+        servicePort: 80
+      - name: https
+        containerPort: 443
+        servicePort: 443
+      configTemplate: httpd.conf
+    apache-tomcat:
+      enabled: false
+      displayName: Apache Tomcat
+      image:
+        repository: tomcat
+        tag: '10.1'
+      replicas: 3
+      ports:
+      - name: http
+        containerPort: 8080
+        servicePort: 80
+      configTemplate: server.xml
+    traefik:
+      enabled: false
+      displayName: Traefik
+      image:
+        repository: traefik
+        tag: v3.1
+      replicas: 3
+      ports:
+      - name: web
+        containerPort: 80
+        servicePort: 80
+      - name: websecure
+        containerPort: 443
+        servicePort: 443
+      - name: dashboard
+        containerPort: 8080
+        servicePort: 8080
+      configTemplate: traefik.yaml
+messaging:
+  kafka:
+    enabled: true
+    replicas: 3
+    image:
+      repository: confluentinc/cp-kafka
+      tag: 7.5.0
+    storage:
+      size: 50Gi
+      className: ''
+    ports:
+      client: 9092
+      external: 29092
+      jmx: 29094
+    zookeeper:
+      enabled: true
+      replicas: 3
+      image:
+        repository: confluentinc/cp-zookeeper
+        tag: latest
+      storage:
+        size: 10Gi
+        className: ''
+    ui:
+      enabled: true
+      replicas: 2
+      image:
+        repository: provectuslabs/kafka-ui
+        tag: latest
+      port: 8080
+  redis:
+    enabled: true
+    replicas: 3
+    image:
+      repository: redis
+      tag: '6.2'
+    sentinel:
+      enabled: true
+      replicas: 3
+      port: 26379
+    port: 6379
+    storage:
+      size: 10Gi
+      className: ''
+databases:
+  enabled: true
+  provider: cloudnative-pg
+  defaultInstances: 3
+  backup:
+    enabled: false
+    retentionPolicy: 30d
+  instances:
+    db-01-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_01
+      owner: app_db_01
+      instances: 3
+      servicePort: 5451
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-02-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_02
+      owner: app_db_02
+      instances: 3
+      servicePort: 5452
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-03-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_03
+      owner: app_db_03
+      instances: 3
+      servicePort: 5439
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-04-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_04
+      owner: app_db_04
+      instances: 3
+      servicePort: 5433
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-05-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_05
+      owner: app_db_05
+      instances: 3
+      servicePort: 5450
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-06-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_06
+      owner: app_db_06
+      instances: 3
+      servicePort: 5435
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-07-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_07
+      owner: app_db_07
+      instances: 3
+      servicePort: 5446
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-08-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_08
+      owner: app_db_08
+      instances: 3
+      servicePort: 5432
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-09-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_09
+      owner: app_db_09
+      instances: 3
+      servicePort: 5434
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-10-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_10
+      owner: app_db_10
+      instances: 3
+      servicePort: 5441
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-11-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_11
+      owner: app_db_11
+      instances: 3
+      servicePort: 5437
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-12-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_12
+      owner: app_db_12
+      instances: 3
+      servicePort: 5449
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-13-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_13
+      owner: app_db_13
+      instances: 3
+      servicePort: 5444
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-14-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_14
+      owner: app_db_14
+      instances: 3
+      servicePort: 5436
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-15-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_15
+      owner: app_db_15
+      instances: 3
+      servicePort: 5440
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-16-postgres:
+      enabled: true
+      engine: postgresql
+      image:
+        repository: postgres
+        tag: '16.2'
+      database: app_db_16
+      owner: app_db_16
+      instances: 3
+      servicePort: 5443
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    db-17-postgis:
+      enabled: true
+      engine: postgis
+      image:
+        repository: postgis/postgis
+        tag: 16-3.4
+      database: app_db_17
+      owner: app_db_17
+      instances: 3
+      servicePort: 5438
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+    timescaledb:
+      enabled: true
+      engine: timescaledb
+      image:
+        repository: timescale/timescaledb
+        tag: latest-pg16
+      database: timeseries
+      owner: timeseries
+      instances: 3
+      servicePort: 5448
+      postgresPort: 5432
+      storage:
+        size: 20Gi
+        className: ''
+      backup:
+        enabled: false
+observability:
+  profile: elasticsearch
+  grafana:
+    enabled: true
+  loki:
+    enabled: false
+  elasticsearch:
+    enabled: true
+    mode: eck
+    name: city-elasticsearch
+    version: 8.12.0
+    image:
+      repository: elasticsearch
+      tag: 8.12.0
+    nodeSets:
+    - name: default
+      count: 3
+      storage: 100Gi
+  kibana:
+    enabled: true
+    mode: eck
+    version: 8.12.0
+    image:
+      repository: kibana
+      tag: 8.12.0
+    count: 2
+    port: 5601
+  logstash:
+    enabled: true
+    replicas: 2
+    image:
+      repository: logstash
+      tag: 8.12.0
+    ports:
+    - name: beats
+      containerPort: 5044
+      servicePort: 5044
+    - name: monitoring
+      containerPort: 9600
+      servicePort: 9600
+  opensearch:
+    enabled: false
+    replicas: 3
+  graylog:
+    enabled: false
+    replicas: 3
+  clickhouse:
+    enabled: false
+    replicas: 3
+workloads:
+  app-01:
+    enabled: true
+    kind: Deployment
+    category: realtime
+    replicas: 3
+    image:
+      repository: example-app-01
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5013
+      servicePort: 5013
+    - name: tcp-5021
+      containerPort: 5021
+      servicePort: 5021
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-01
+    probe:
+      enabled: true
+      type: tcp
+      port: 5013
+  app-02:
+    enabled: true
+    kind: Deployment
+    category: smart-city
+    replicas: 3
+    image:
+      repository: example-app-02
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5006
+      servicePort: 5006
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-02
+    probe:
+      enabled: true
+      type: tcp
+      port: 5006
+  app-03:
+    enabled: true
+    kind: Deployment
+    category: proxy
+    replicas: 3
+    image:
+      repository: example-app-03
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5019
+      servicePort: 5019
+    - name: tcp-3000
+      containerPort: 3000
+      servicePort: 3000
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-03
+    probe:
+      enabled: true
+      type: tcp
+      port: 5019
+  app-04:
+    enabled: true
+    kind: Deployment
+    category: proxy
+    replicas: 3
+    image:
+      repository: example-app-04
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5020
+      servicePort: 5020
+    - name: tcp-3001
+      containerPort: 3001
+      servicePort: 3001
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-04
+    probe:
+      enabled: true
+      type: tcp
+      port: 5020
+  app-05:
+    enabled: true
+    kind: Deployment
+    category: core
+    replicas: 3
+    image:
+      repository: example-app-05
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5004
+      servicePort: 5004
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: true
+      path: /app-05
+    probe:
+      enabled: true
+      type: tcp
+      port: 5004
+  app-06:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-06
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5023
+      servicePort: 5023
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-06
+    probe:
+      enabled: true
+      type: tcp
+      port: 5023
+  app-07:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-07
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5036
+      servicePort: 5036
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-07
+    probe:
+      enabled: true
+      type: tcp
+      port: 5036
+  app-08:
+    enabled: true
+    kind: Deployment
+    category: worker
+    replicas: 3
+    image:
+      repository: example-app-08
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5037
+      servicePort: 5037
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-08
+    probe:
+      enabled: true
+      type: tcp
+      port: 5037
+  app-09:
+    enabled: true
+    kind: Deployment
+    category: mobility
+    replicas: 3
+    image:
+      repository: example-app-09
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5009
+      servicePort: 5009
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-09
+    probe:
+      enabled: true
+      type: tcp
+      port: 5009
+  app-10:
+    enabled: true
+    kind: Deployment
+    category: traffic-counts
+    replicas: 3
+    image:
+      repository: example-app-10
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5032
+      servicePort: 5032
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-10
+    probe:
+      enabled: true
+      type: tcp
+      port: 5032
+  app-11:
+    enabled: true
+    kind: Deployment
+    category: camera
+    replicas: 3
+    image:
+      repository: example-app-11
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5040
+      servicePort: 5040
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-11
+    probe:
+      enabled: true
+      type: tcp
+      port: 5040
+  app-12:
+    enabled: true
+    kind: Deployment
+    category: worker
+    replicas: 3
+    image:
+      repository: example-app-12
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5031
+      servicePort: 5031
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-12
+    probe:
+      enabled: true
+      type: tcp
+      port: 5031
+  app-13:
+    enabled: true
+    kind: Deployment
+    category: ticketing
+    replicas: 3
+    image:
+      repository: example-app-13
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5010
+      servicePort: 5010
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-13
+    probe:
+      enabled: true
+      type: tcp
+      port: 5010
+  app-14:
+    enabled: true
+    kind: Deployment
+    category: monitoring
+    replicas: 3
+    image:
+      repository: example-app-14
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5024
+      servicePort: 5024
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-14
+    probe:
+      enabled: true
+      type: tcp
+      port: 5024
+  app-15:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-15
+      tag: latest
+    ports:
+    - name: tcp-range
+      range:
+        start: 4000
+        end: 4199
+        namePrefix: app
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-15
+    probe:
+      enabled: false
+  app-16:
+    enabled: true
+    kind: Deployment
+    category: logging
+    replicas: 3
+    image:
+      repository: example-app-16
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5021
+      servicePort: 5021
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-16
+    probe:
+      enabled: true
+      type: tcp
+      port: 5021
+  app-17:
+    enabled: true
+    kind: Deployment
+    category: camera
+    replicas: 3
+    image:
+      repository: example-app-17
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5035
+      servicePort: 5035
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-17
+    probe:
+      enabled: true
+      type: tcp
+      port: 5035
+  app-18:
+    enabled: true
+    kind: Deployment
+    category: core
+    replicas: 3
+    image:
+      repository: example-app-18
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5005
+      servicePort: 5005
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-18
+    probe:
+      enabled: true
+      type: tcp
+      port: 5005
+  app-19:
+    enabled: true
+    kind: Deployment
+    category: identity
+    replicas: 3
+    image:
+      repository: example-app-19
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5001
+      servicePort: 5001
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: true
+      path: /app-19
+    probe:
+      enabled: true
+      type: tcp
+      port: 5001
+  app-20:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-20
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5029
+      servicePort: 5029
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-20
+    probe:
+      enabled: true
+      type: tcp
+      port: 5029
+  app-21:
+    enabled: true
+    kind: Deployment
+    category: automation
+    replicas: 3
+    image:
+      repository: example-app-21
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5030
+      servicePort: 5030
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-21
+    probe:
+      enabled: true
+      type: tcp
+      port: 5030
+  app-22:
+    enabled: true
+    kind: Deployment
+    category: worker
+    replicas: 3
+    image:
+      repository: example-app-22
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5025
+      servicePort: 5025
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-22
+    probe:
+      enabled: true
+      type: tcp
+      port: 5025
+  app-23:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-23
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5027
+      servicePort: 5027
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-23
+    probe:
+      enabled: true
+      type: tcp
+      port: 5027
+  app-24:
+    enabled: true
+    kind: Deployment
+    category: worker
+    replicas: 3
+    image:
+      repository: example-app-24
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5034
+      servicePort: 5034
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-24
+    probe:
+      enabled: true
+      type: tcp
+      port: 5034
+  app-25:
+    enabled: true
+    kind: Deployment
+    category: mobility
+    replicas: 3
+    image:
+      repository: example-app-25
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5008
+      servicePort: 5008
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-25
+    probe:
+      enabled: true
+      type: tcp
+      port: 5008
+  app-26:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-26
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5028
+      servicePort: 5028
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-26
+    probe:
+      enabled: true
+      type: tcp
+      port: 5028
+  app-27:
+    enabled: true
+    kind: Deployment
+    category: gateway
+    replicas: 3
+    image:
+      repository: example-app-27
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5000
+      servicePort: 5000
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: true
+      path: /app-27
+    probe:
+      enabled: true
+      type: tcp
+      port: 5000
+  app-28:
+    enabled: true
+    kind: Deployment
+    category: mobility
+    replicas: 3
+    image:
+      repository: example-app-28
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5011
+      servicePort: 5011
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-28
+    probe:
+      enabled: true
+      type: tcp
+      port: 5011
+  app-29:
+    enabled: true
+    kind: Deployment
+    category: mobility
+    replicas: 3
+    image:
+      repository: example-app-29
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5007
+      servicePort: 5007
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-29
+    probe:
+      enabled: true
+      type: tcp
+      port: 5007
+  app-30:
+    enabled: true
+    kind: Deployment
+    category: worker
+    replicas: 3
+    image:
+      repository: example-app-30
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5038
+      servicePort: 5038
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-30
+    probe:
+      enabled: true
+      type: tcp
+      port: 5038
+  app-31:
+    enabled: true
+    kind: Deployment
+    category: worker
+    replicas: 3
+    image:
+      repository: example-app-31
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5026
+      servicePort: 5026
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-31
+    probe:
+      enabled: true
+      type: tcp
+      port: 5026
+  app-32:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-32
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5022
+      servicePort: 5022
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-32
+    probe:
+      enabled: true
+      type: tcp
+      port: 5022
+  app-33:
+    enabled: true
+    kind: Deployment
+    category: asset-management
+    replicas: 3
+    image:
+      repository: example-app-33
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5002
+      servicePort: 5002
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-33
+    probe:
+      enabled: true
+      type: tcp
+      port: 5002
+  app-34:
+    enabled: true
+    kind: Deployment
+    category: core
+    replicas: 3
+    image:
+      repository: example-app-34
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5003
+      servicePort: 5003
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-34
+    probe:
+      enabled: true
+      type: tcp
+      port: 5003
+  app-35:
+    enabled: true
+    kind: Deployment
+    category: dashboard
+    replicas: 3
+    image:
+      repository: example-app-35
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5033
+      servicePort: 5033
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: true
+      path: /app-35
+    probe:
+      enabled: true
+      type: tcp
+      port: 5033
+  app-36:
+    enabled: true
+    kind: Deployment
+    category: traffic-controller
+    replicas: 3
+    image:
+      repository: example-app-36
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5017
+      servicePort: 5017
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-36
+    probe:
+      enabled: true
+      type: tcp
+      port: 5017
+  app-37:
+    enabled: true
+    kind: Deployment
+    category: camera
+    replicas: 3
+    image:
+      repository: example-app-37
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5015
+      servicePort: 5015
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-37
+    probe:
+      enabled: true
+      type: tcp
+      port: 5015
+  app-38:
+    enabled: true
+    kind: Deployment
+    category: realtime
+    replicas: 3
+    image:
+      repository: example-app-38
+      tag: latest
+    ports:
+    - name: http
+      containerPort: 5018
+      servicePort: 5018
+    env:
+    - name: ASPNETCORE_ENVIRONMENT
+      value: Production
+    - name: DOTNET_SYSTEM_GLOBALIZATION_INVARIANT
+      value: 'false'
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      enabled: true
+    ingress:
+      enabled: false
+      path: /app-38
+    probe:
+      enabled: true
+      type: tcp
+      port: 5018
+zabbixAgent:
+  enabled: true
+  image:
+    repository: zabbix/zabbix-agent2
+    tag: latest
+  replicas: 3
+  ports:
+  - name: agent
+    containerPort: 10050
+    servicePort: 10050
+  - name: aux
+    containerPort: 31999
+    servicePort: 31999

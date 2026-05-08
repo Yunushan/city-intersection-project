@@ -1,0 +1,213 @@
+{{- range $name, $svc := .Values.workloads }}
+{{- if $svc.enabled }}
+{{- $kind := default "Deployment" $svc.kind }}
+---
+apiVersion: apps/v1
+kind: {{ $kind }}
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "cip.namespace" $ }}
+  labels:
+    {{- include "cip.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+    city-intersection.io/category: {{ $svc.category | default "application" | quote }}
+spec:
+  {{- if eq $kind "StatefulSet" }}
+  serviceName: {{ $name }}-headless
+  {{- end }}
+  replicas: {{ $svc.replicas | default $.Values.global.defaultReplicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+      app.kubernetes.io/part-of: city-intersection-project
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ $name }}
+        app.kubernetes.io/part-of: city-intersection-project
+        city-intersection.io/category: {{ $svc.category | default "application" | quote }}
+    spec:
+      {{- if $.Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range $.Values.global.imagePullSecrets }}
+        - name: {{ . }}
+        {{- end }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: {{ $name }}
+          image: {{ include "cip.image" (list $ $svc.image) | quote }}
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            {{- include "cip.securityContext" $ | nindent 12 }}
+          {{- if $svc.env }}
+          env:
+            {{- toYaml $svc.env | nindent 12 }}
+          {{- end }}
+          {{- if $svc.ports }}
+          ports:
+            {{- range $p := $svc.ports }}
+            {{- if $p.range }}
+            {{- range $port := untilStep (int $p.range.start) (add (int $p.range.end) 1) 1 }}
+            - name: {{ printf "%s-%d" ($p.range.namePrefix | default "tcp") $port | trunc 15 | trimSuffix "-" }}
+              containerPort: {{ $port }}
+              protocol: TCP
+            {{- end }}
+            {{- else }}
+            - name: {{ $p.name | default (printf "tcp-%d" ($p.containerPort | int)) | quote }}
+              containerPort: {{ $p.containerPort }}
+              protocol: TCP
+            {{- end }}
+            {{- end }}
+          {{- end }}
+          {{- if and $svc.probe $svc.probe.enabled }}
+          readinessProbe:
+            tcpSocket:
+              port: {{ $svc.probe.port }}
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: {{ $svc.probe.port }}
+            initialDelaySeconds: 45
+            periodSeconds: 20
+          {{- end }}
+          {{- if $svc.resources }}
+          resources:
+            {{- toYaml $svc.resources | nindent 12 }}
+          {{- end }}
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 50
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: {{ $name }}
+                topologyKey: kubernetes.io/hostname
+{{- if and (eq $kind "StatefulSet") $svc.storage }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        {{- if $svc.storage.className }}
+        storageClassName: {{ $svc.storage.className | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ $svc.storage.size | default "10Gi" }}
+{{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "cip.namespace" $ }}
+  labels:
+    {{- include "cip.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $name }}
+spec:
+  type: {{ dig "service" "type" "ClusterIP" $svc }}
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+    app.kubernetes.io/part-of: city-intersection-project
+  ports:
+    {{- range $p := $svc.ports }}
+    {{- if $p.range }}
+    {{- range $port := untilStep (int $p.range.start) (add (int $p.range.end) 1) 1 }}
+    - name: {{ printf "%s-%d" ($p.range.namePrefix | default "tcp") $port | trunc 15 | trimSuffix "-" }}
+      port: {{ $port }}
+      targetPort: {{ $port }}
+      protocol: TCP
+    {{- end }}
+    {{- else }}
+    - name: {{ $p.name | default (printf "tcp-%d" ($p.servicePort | int)) | quote }}
+      port: {{ $p.servicePort | default $p.containerPort }}
+      targetPort: {{ $p.containerPort }}
+      protocol: TCP
+    {{- end }}
+    {{- end }}
+{{- if eq $kind "StatefulSet" }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}-headless
+  namespace: {{ include "cip.namespace" $ }}
+spec:
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: {{ $name }}
+  ports:
+    {{- range $p := $svc.ports }}
+    {{- if not $p.range }}
+    - name: {{ $p.name | default (printf "tcp-%d" ($p.servicePort | int)) | quote }}
+      port: {{ $p.servicePort | default $p.containerPort }}
+      targetPort: {{ $p.containerPort }}
+    {{- end }}
+    {{- end }}
+{{- end }}
+{{- if and $.Values.autoscaling.enabled $svc.autoscaling.enabled (eq $kind "Deployment") }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "cip.namespace" $ }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ $name }}
+  minReplicas: {{ $.Values.autoscaling.default.minReplicas }}
+  maxReplicas: {{ $.Values.autoscaling.default.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ $.Values.autoscaling.default.targetCPUUtilizationPercentage }}
+{{- end }}
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "cip.namespace" $ }}
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ $name }}
+{{- if and $.Values.ingress.enabled $svc.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ $name }}
+  namespace: {{ include "cip.namespace" $ }}
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  ingressClassName: {{ $.Values.ingress.className | quote }}
+  {{- if $.Values.ingress.tls.enabled }}
+  tls:
+    - hosts: [{{ $.Values.ingress.host | quote }}]
+      secretName: {{ $.Values.ingress.tls.secretName | quote }}
+  {{- end }}
+  rules:
+    - host: {{ $.Values.ingress.host | quote }}
+      http:
+        paths:
+          - path: {{ $svc.ingress.path | default (printf "/%s" $name) | quote }}
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ $name }}
+                port:
+                  number: {{ (first $svc.ports).servicePort | default (first $svc.ports).containerPort }}
+{{- end }}
+{{- end }}
+{{- end }}
