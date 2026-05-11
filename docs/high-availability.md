@@ -11,8 +11,11 @@ The default production topology is three RKE2 server nodes. The first three inve
 
 HAProxy exposes:
 
-- `6443` Kubernetes API
-- `9345` RKE2 registration endpoint
+- `7443` Kubernetes API VIP frontend, forwarding to each server node on `6443`
+- `9346` RKE2 registration VIP frontend, forwarding to each server node on `9345`
+
+The non-default VIP frontend ports avoid binding conflicts because HAProxy and RKE2 run on the same three nodes.
+If you move HAProxy and Keepalived to separate load-balancer nodes, you can override the VIP port variables back to the standard RKE2 ports.
 
 Keepalived owns the virtual IP. Chrony runs on every node to reduce clock drift issues for certificates, logs, distributed databases, and Kafka.
 

@@ -14,8 +14,8 @@ journalctl -u keepalived -n 100
 
 ```bash
 systemctl status haproxy
-ss -lntp | grep -E '6443|9345'
-curl -k https://<vip>:6443/readyz
+ss -lntp | grep -E '6443|7443|9345|9346'
+curl -k https://<vip>:7443/readyz
 ```
 
 ## Images cannot be pulled

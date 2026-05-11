@@ -134,6 +134,8 @@ all:
     cluster_engine: rke2
     cluster_vip: <unused-lan-vip>
     cluster_domain: <cluster-domain>
+    kubernetes_api_vip_port: 7443
+    rke2_registration_vip_port: 9346
     rke2_token: "<vaulted-rke2-token>"
     rke2_version: "v<major>.<minor>.<patch>+rke2r<revision>"
     keepalived_auth_pass: "<vaulted-keepalived-pass>"
@@ -189,10 +191,11 @@ make bootstrap ENV=prod ENGINE=rke2 INVENTORY=inventories/prod/hosts.yml CONFIRM
 make install-cluster ENV=prod ENGINE=rke2 INVENTORY=inventories/prod/hosts.yml CONFIRM_PROD=true
 ```
 
-Copy kubeconfig from the first server node, then replace the server address with the cluster VIP or DNS name:
+Copy kubeconfig from the first server node, then replace the server address with the cluster VIP or DNS name and the configured Kubernetes API VIP port:
 
 ```bash
 scp <ssh-user>@<node-1>:/etc/rancher/rke2/rke2.yaml ./kubeconfig-rke2
+sed -i 's#https://127.0.0.1:6443#https://<unused-lan-vip>:7443#g' ./kubeconfig-rke2
 export KUBECONFIG="$PWD/kubeconfig-rke2"
 kubectl get nodes -o wide
 ```

@@ -24,7 +24,7 @@
     - name: Wait for RKE2 registration endpoint through VIP
       ansible.builtin.wait_for:
         host: "{{ cluster_vip }}"
-        port: 9345
+        port: "{{ rke2_registration_vip_port | default(9346) }}"
         timeout: "{{ rke2_registration_timeout | default(600) }}"
       when:
         - cluster_engine | default('rke2') == 'rke2'

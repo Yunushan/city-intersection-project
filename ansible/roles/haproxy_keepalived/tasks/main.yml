@@ -17,7 +17,30 @@
     state: present
   when: ansible_system == 'Linux'
 
-- name: Allow HAProxy to bind Kubernetes ports under SELinux
+- name: Check firewalld state for HA services
+  ansible.builtin.command: systemctl is-active firewalld
+  register: haproxy_keepalived_firewalld_state
+  changed_when: false
+  failed_when: false
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+
+- name: Open HAProxy VIP ports in firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}/tcp"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - "{{ kubernetes_api_vip_port | default(7443) }}"
+    - "{{ rke2_registration_vip_port | default(9346) }}"
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+    - haproxy_keepalived_firewalld_state.stdout | default('') == 'active'
+
+- name: Allow HAProxy to bind VIP frontend ports under SELinux
   ansible.builtin.shell: |
     set -euo pipefail
     port="{{ item }}"
@@ -33,8 +56,8 @@
   args:
     executable: /bin/bash
   loop:
-    - 6443
-    - 9345
+    - "{{ kubernetes_api_vip_port | default(7443) }}"
+    - "{{ rke2_registration_vip_port | default(9346) }}"
   register: haproxy_selinux_port
   changed_when: "'changed' in haproxy_selinux_port.stdout"
   when:

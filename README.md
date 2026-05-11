@@ -94,7 +94,7 @@ By default the Kubernetes profile deploys:
 | Layer | Default | HA behavior |
 |---|---|---|
 | Cluster | RKE2 | 3 server nodes, fixed VIP, etcd quorum |
-| Control-plane access | HAProxy + Keepalived | Virtual IP failover and TCP load balancing for `6443` and `9345` |
+| Control-plane access | HAProxy + Keepalived | VIP failover on `7443` for the API and `9346` for RKE2 registration |
 | Time sync | Chrony | Installed on every node |
 | Web gateway | nginx `1.18` | 3 replicas, swappable with Apache HTTPD, Tomcat, or Traefik |
 | Application services | Sanitized `example-app-*` images | 3 replicas, PDB, HPA, anti-affinity/topology spread |
