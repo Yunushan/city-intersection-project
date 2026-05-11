@@ -64,6 +64,35 @@
     - inventory_hostname in groups.get('rke2_agents', [])
     - not ansible_check_mode
 
+- name: Check firewalld state
+  ansible.builtin.command: systemctl is-active firewalld
+  register: rke2_firewalld_state
+  changed_when: false
+  failed_when: false
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+
+- name: Open RKE2 ports in firewalld
+  ansible.posix.firewalld:
+    port: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: >-
+    {{
+      (rke2_firewalld_common_ports | default(['8472/udp', '10250/tcp'])) +
+      (
+        rke2_firewalld_server_ports | default(['6443/tcp', '9345/tcp', '2379/tcp', '2380/tcp'])
+        if inventory_hostname in groups['rke2_servers']
+        else []
+      )
+    }}
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+    - rke2_firewalld_state.stdout | default('') == 'active'
+
 - name: Enable RKE2 service
   ansible.builtin.service:
     name: "{{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
@@ -78,10 +107,41 @@
   when: not ansible_check_mode
 
 - name: Wait for local RKE2 registration endpoint
-  ansible.builtin.wait_for:
-    host: "{{ node_ip | default(ansible_host) }}"
-    port: 9345
-    timeout: "{{ rke2_local_registration_timeout | default(1200) }}"
+  block:
+    - name: Wait for local RKE2 registration endpoint
+      ansible.builtin.wait_for:
+        host: "{{ node_ip | default(ansible_host) }}"
+        port: 9345
+        timeout: "{{ rke2_local_registration_timeout | default(1200) }}"
+  rescue:
+    - name: Read RKE2 service status after registration wait failure
+      ansible.builtin.command: "systemctl status {{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }} --no-pager -l"
+      register: rke2_service_status
+      changed_when: false
+      failed_when: false
+
+    - name: Read recent RKE2 journal after registration wait failure
+      ansible.builtin.command: "journalctl -u {{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }} --no-pager -n 160"
+      register: rke2_service_journal
+      changed_when: false
+      failed_when: false
+
+    - name: Read RKE2 listener state after registration wait failure
+      ansible.builtin.command: "ss -ltnp"
+      register: rke2_socket_state
+      changed_when: false
+      failed_when: false
+
+    - name: Show RKE2 startup diagnostics
+      ansible.builtin.debug:
+        msg:
+          - "{{ rke2_service_status.stdout_lines | default([]) }}"
+          - "{{ rke2_service_journal.stdout_lines | default([]) }}"
+          - "{{ rke2_socket_state.stdout_lines | default([]) | select('search', ':6443|:9345|:2379|:2380|:10250') | list }}"
+
+    - name: Fail because RKE2 registration endpoint did not open
+      ansible.builtin.fail:
+        msg: "RKE2 did not open local registration port 9345 before timeout. See the diagnostics printed above."
   when:
     - inventory_hostname in groups['rke2_servers']
     - not ansible_check_mode
