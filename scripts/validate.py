@@ -282,6 +282,89 @@ for topology_name, expectations in expected_topologies.items():
     if 'cluster_nodes' not in groups or 'rke2_servers' not in groups:
         errors.append(f'Deployment topology {topology_name} inventory must define cluster_nodes and rke2_servers')
 
+platforms = yaml.safe_load((ROOT / 'config/platforms.yaml').read_text(encoding='utf-8'))
+required_debian_family_platforms = {
+    'ubuntu-22.04', 'ubuntu-24.04', 'ubuntu-26.04',
+    'debian-11', 'debian-12', 'debian-13',
+}
+required_rhel_family_platforms = {
+    'rhel-7', 'rhel-8', 'rhel-9', 'rhel-10',
+    'rocky-linux-7', 'rocky-linux-8', 'rocky-linux-9', 'rocky-linux-10',
+    'alma-linux-7', 'alma-linux-8', 'alma-linux-9', 'alma-linux-10',
+    'centos-stream-9', 'centos-stream-10',
+}
+linux_production_nodes = set(platforms.get('linuxProductionNodes', []))
+missing_debian_family_platforms = required_debian_family_platforms - linux_production_nodes
+if missing_debian_family_platforms:
+    errors.append(
+        'Platform matrix missing required Debian-family production nodes: '
+        + ', '.join(sorted(missing_debian_family_platforms))
+    )
+missing_rhel_family_platforms = required_rhel_family_platforms - linux_production_nodes
+if missing_rhel_family_platforms:
+    errors.append(
+        'Platform matrix missing required RHEL-family production nodes: '
+        + ', '.join(sorted(missing_rhel_family_platforms))
+    )
+debian_family_versions = platforms.get('debianFamilyVersions', {})
+for family, expected_versions in {
+    'ubuntu': {'22.04', '24.04', '26.04'},
+    'debian': {'11', '12', '13'},
+}.items():
+    actual_versions = set(str(version) for version in debian_family_versions.get(family, []))
+    if actual_versions != expected_versions:
+        errors.append(f'Platform matrix {family} versions must be: {", ".join(sorted(expected_versions))}')
+
+rhel_family_versions = platforms.get('rhelFamilyMajorVersions', {})
+for family, expected_versions in {
+    'rhel': {'7', '8', '9', '10'},
+    'rocky-linux': {'7', '8', '9', '10'},
+    'alma-linux': {'7', '8', '9', '10'},
+    'centos-stream': {'9', '10'},
+}.items():
+    actual_versions = set(str(version) for version in rhel_family_versions.get(family, []))
+    if actual_versions != expected_versions:
+        errors.append(f'Platform matrix {family} versions must be: {", ".join(sorted(expected_versions))}')
+
+cluster_profiles = yaml.safe_load((ROOT / 'config/cluster-profiles.yaml').read_text(encoding='utf-8'))
+cluster_profile_catalog = cluster_profiles.get('profiles', {})
+for profile_name in ['rke2', 'k3s', 'docker']:
+    supported_node_os = set(cluster_profile_catalog.get(profile_name, {}).get('supportedNodeOs', []))
+    missing_debian_platforms = required_debian_family_platforms - supported_node_os
+    if missing_debian_platforms:
+        errors.append(
+            f'{profile_name} profile missing required Debian-family node OS entries: '
+            + ', '.join(sorted(missing_debian_platforms))
+        )
+    missing_rhel_platforms = required_rhel_family_platforms - supported_node_os
+    if missing_rhel_platforms:
+        errors.append(
+            f'{profile_name} profile missing required RHEL-family node OS entries: '
+            + ', '.join(sorted(missing_rhel_platforms))
+        )
+
+microk8s_supported_node_os = set(cluster_profile_catalog.get('microk8s', {}).get('supportedNodeOs', []))
+missing_microk8s_debian_platforms = required_debian_family_platforms - microk8s_supported_node_os
+if missing_microk8s_debian_platforms:
+    errors.append(
+        'microk8s profile missing required Debian-family node OS entries: '
+        + ', '.join(sorted(missing_microk8s_debian_platforms))
+    )
+
+raw_supported_os = set(cluster_profile_catalog.get('raw', {}).get('supportedOs', []))
+missing_raw_debian_platforms = required_debian_family_platforms - raw_supported_os
+if missing_raw_debian_platforms:
+    errors.append(
+        'raw profile missing required Debian-family OS entries: '
+        + ', '.join(sorted(missing_raw_debian_platforms))
+    )
+missing_raw_rhel_platforms = required_rhel_family_platforms - raw_supported_os
+if missing_raw_rhel_platforms:
+    errors.append(
+        'raw profile missing required RHEL-family OS entries: '
+        + ', '.join(sorted(missing_raw_rhel_platforms))
+    )
+
 supply_chain_policy = yaml.safe_load((ROOT / 'config/supply-chain-policy.yaml').read_text(encoding='utf-8'))
 policy = supply_chain_policy.get('policy', {})
 if policy.get('nodeLtsMajor') != 24:

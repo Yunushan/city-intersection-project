@@ -25,11 +25,13 @@ Install these on the operator machine:
 
 On each target node:
 
-- Use a supported Linux distribution, such as Ubuntu 24.04.
+- Use a supported Linux distribution.
 - Set stable hostnames.
 - Configure static IP addresses or DHCP reservations.
 - Ensure the nodes can reach each other.
 - Reserve one unused virtual IP on the same network for Keepalived.
+
+Supported RKE2 node operating systems include Ubuntu 22.04/24.04/26.04, Debian 11/12/13, RHEL 7/8/9/10, Rocky Linux 7/8/9/10, AlmaLinux 7/8/9/10, and CentOS Stream 9/10. Keep all three nodes on the same OS family and major version for predictable kernel, SELinux, package manager, and service behavior.
 
 ## Prepare The Application Archive
 

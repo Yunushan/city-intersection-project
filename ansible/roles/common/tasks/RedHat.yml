@@ -1,6 +1,6 @@
 ---
 - name: Install common RHEL/Rocky/Alma/CentOS packages
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name:
       - curl
       - ca-certificates
@@ -8,6 +8,13 @@
       - iproute
       - nfs-utils
       - iscsi-initiator-utils
-      - jq
       - unzip
     state: present
+
+- name: Install optional RHEL-family operator helper packages
+  ansible.builtin.package:
+    name:
+      - jq
+    state: present
+  register: redhat_optional_helper_packages
+  failed_when: false

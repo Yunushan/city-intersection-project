@@ -63,6 +63,33 @@
   hosts: cluster_nodes
   gather_facts: true
   any_errors_fatal: true
+  vars:
+    supported_ubuntu_versions:
+      - "22.04"
+      - "24.04"
+      - "26.04"
+    supported_debian_major_versions:
+      - "11"
+      - "12"
+      - "13"
+    supported_rhel_family_major_versions:
+      - "7"
+      - "8"
+      - "9"
+      - "10"
+    supported_centos_stream_major_versions:
+      - "9"
+      - "10"
+    supported_rhel_family_distributions:
+      - redhat
+      - redhat-enterprise-linux
+      - rocky
+      - rocky-linux
+      - almalinux
+      - almalinux-os
+    supported_centos_stream_distributions:
+      - centos
+      - centos-stream
   tasks:
     - name: Validate host operating system for cluster bootstrap
       ansible.builtin.assert:
@@ -70,6 +97,64 @@
           - ansible_system == 'Linux'
         fail_msg: "Cluster bootstrap targets must be Linux hosts for rke2, k3s, microk8s, and docker profiles."
       when: cluster_engine | default('rke2') in ['rke2', 'k3s', 'microk8s', 'docker']
+
+    - name: Normalize RedHat-family distribution facts
+      ansible.builtin.set_fact:
+        platform_distribution_name: "{{ ansible_distribution | default('') | lower | regex_replace('[^a-z0-9]+', '-') }}"
+        platform_distribution_major: "{{ ansible_distribution_major_version | default('') | string }}"
+        platform_distribution_release: "{{ ansible_distribution_release | default('') | lower }}"
+      when: ansible_os_family == 'RedHat'
+
+    - name: Normalize Debian-family distribution facts
+      ansible.builtin.set_fact:
+        platform_distribution_name: "{{ ansible_distribution | default('') | lower | regex_replace('[^a-z0-9]+', '-') }}"
+        platform_distribution_version: "{{ ansible_distribution_version | default('') | string }}"
+        platform_distribution_major: "{{ ansible_distribution_major_version | default('') | string }}"
+      when: ansible_os_family == 'Debian'
+
+    - name: Validate supported Debian-family cluster node version
+      ansible.builtin.assert:
+        that:
+          - >
+            (
+              platform_distribution_name == 'ubuntu'
+              and platform_distribution_version in supported_ubuntu_versions
+            )
+            or
+            (
+              platform_distribution_name == 'debian'
+              and platform_distribution_major in supported_debian_major_versions
+            )
+        fail_msg: >-
+          Debian-family cluster nodes must be Ubuntu 22.04/24.04/26.04 or Debian 11/12/13.
+          Detected {{ ansible_distribution }} {{ ansible_distribution_version }}.
+      when:
+        - cluster_engine | default('rke2') in ['rke2', 'k3s', 'microk8s', 'docker']
+        - ansible_os_family == 'Debian'
+
+    - name: Validate supported RedHat-family cluster node version
+      ansible.builtin.assert:
+        that:
+          - >
+            (
+              platform_distribution_name in supported_rhel_family_distributions
+              and platform_distribution_major in supported_rhel_family_major_versions
+            )
+            or
+            (
+              platform_distribution_name in supported_centos_stream_distributions
+              and platform_distribution_major in supported_centos_stream_major_versions
+              and (
+                platform_distribution_name == 'centos-stream'
+                or platform_distribution_release == 'stream'
+              )
+            )
+        fail_msg: >-
+          RedHat-family cluster nodes must be RHEL, Rocky Linux, or AlmaLinux major 7/8/9/10,
+          or CentOS Stream major 9/10. Detected {{ ansible_distribution }} {{ ansible_distribution_version }}.
+      when:
+        - cluster_engine | default('rke2') in ['rke2', 'k3s', 'docker']
+        - ansible_os_family == 'RedHat'
 
     - name: Validate node address variables
       ansible.builtin.assert:

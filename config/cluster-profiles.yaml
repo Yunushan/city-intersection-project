@@ -12,12 +12,26 @@ profiles:
       keepalived: true
       embeddedEtcd: true
     supportedNodeOs:
+    - ubuntu-22.04
     - ubuntu-24.04
+    - ubuntu-26.04
+    - debian-11
     - debian-12
+    - debian-13
+    - rhel-7
+    - rhel-8
     - rhel-9
-    - rocky-9
-    - alma-9
+    - rhel-10
+    - rocky-linux-7
+    - rocky-linux-8
+    - rocky-linux-9
+    - rocky-linux-10
+    - alma-linux-7
+    - alma-linux-8
+    - alma-linux-9
+    - alma-linux-10
     - centos-stream-9
+    - centos-stream-10
     installRole: ansible/roles/rke2
     notes: Default production profile. Use a fixed registration address and three server nodes.
   k3s:
@@ -29,11 +43,26 @@ profiles:
       keepalived: true
       externalDatastore: postgresql|mysql|etcd
     supportedNodeOs:
+    - ubuntu-22.04
     - ubuntu-24.04
+    - ubuntu-26.04
+    - debian-11
     - debian-12
+    - debian-13
+    - rhel-7
+    - rhel-8
     - rhel-9
-    - rocky-9
-    - alma-9
+    - rhel-10
+    - rocky-linux-7
+    - rocky-linux-8
+    - rocky-linux-9
+    - rocky-linux-10
+    - alma-linux-7
+    - alma-linux-8
+    - alma-linux-9
+    - alma-linux-10
+    - centos-stream-9
+    - centos-stream-10
     installRole: ansible/roles/k3s
   microk8s:
     enabled: true
@@ -41,9 +70,12 @@ profiles:
     ha:
       microk8sHaClusterAddon: true
     supportedNodeOs:
-    - ubuntu-24.04
     - ubuntu-22.04
+    - ubuntu-24.04
+    - ubuntu-26.04
+    - debian-11
     - debian-12
+    - debian-13
     installRole: ansible/roles/microk8s
   docker:
     enabled: true
@@ -51,11 +83,26 @@ profiles:
       swarmMode: true
       composeFallback: true
     supportedNodeOs:
+    - ubuntu-22.04
     - ubuntu-24.04
+    - ubuntu-26.04
+    - debian-11
     - debian-12
+    - debian-13
+    - rhel-7
+    - rhel-8
     - rhel-9
-    - rocky-9
-    - alma-9
+    - rhel-10
+    - rocky-linux-7
+    - rocky-linux-8
+    - rocky-linux-9
+    - rocky-linux-10
+    - alma-linux-7
+    - alma-linux-8
+    - alma-linux-9
+    - alma-linux-10
+    - centos-stream-9
+    - centos-stream-10
     - windows-server-with-docker
     - macos-docker-desktop
     composeFile: compose/docker-compose.ha.yml
@@ -66,13 +113,26 @@ profiles:
       nssmWindows: true
       bsdRcD: true
     supportedOs:
+    - ubuntu-22.04
     - ubuntu-24.04
-    - debian
-    - rhel
-    - rockylinux
-    - almalinux
-    - centos
-    - centos-stream
+    - ubuntu-26.04
+    - debian-11
+    - debian-12
+    - debian-13
+    - rhel-7
+    - rhel-8
+    - rhel-9
+    - rhel-10
+    - rocky-linux-7
+    - rocky-linux-8
+    - rocky-linux-9
+    - rocky-linux-10
+    - alma-linux-7
+    - alma-linux-8
+    - alma-linux-9
+    - alma-linux-10
+    - centos-stream-9
+    - centos-stream-10
     - freebsd
     - netbsd
     - openbsd
