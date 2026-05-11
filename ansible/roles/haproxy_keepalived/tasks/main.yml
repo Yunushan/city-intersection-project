@@ -46,4 +46,6 @@
   loop:
     - haproxy
     - keepalived
-  when: ansible_system == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode

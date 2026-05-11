@@ -26,4 +26,6 @@
     name: "{{ 'chronyd' if ansible_os_family == 'RedHat' else 'chrony' }}"
     enabled: true
     state: started
-  when: ansible_system == 'Linux'
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
