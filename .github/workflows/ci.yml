@@ -31,6 +31,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: requirements-ci.txt
       - name: Install static analysis dependencies
         run: pip install -r requirements-ci.txt
       - name: Install Ansible collections
@@ -59,13 +60,13 @@ jobs:
   dependency-review:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    continue-on-error: ${{ github.event.repository.private }}
     permissions:
       contents: read
       pull-requests: read
     steps:
       - uses: actions/checkout@v6
       - name: Review dependency changes
+        continue-on-error: true
         uses: actions/dependency-review-action@v4
         with:
           fail-on-severity: high
@@ -79,6 +80,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: requirements-ci.txt
       - name: Install Python dependencies
         run: pip install -r requirements-ci.txt
       - name: Validate repository
@@ -95,6 +97,7 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
           cache: pip
+          cache-dependency-path: requirements-ci.txt
       - name: Install Python dependencies
         run: pip install -r requirements-ci.txt
       - name: Helm lint

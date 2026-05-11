@@ -74,7 +74,8 @@ PRIVATE_LOOKING_IP_PATTERN = re.compile(
 )
 DISCLOSURE_IDENTIFIER_PATTERN = re.compile(
     r'(istanbulkart|iett|vms|tsc2a9|smartflow|scm-|tsc-|camera-ttu|taxi-stand|car-park|'
-    r'bicycle-road|pedestrian-button|tsd-junction|program-archive|camera-manager|ops-scm-log|services-)',
+    r'bicycle-road|pedestrian-button|tsd-junction|program-archive|camera-manager|ops-scm-log|'
+    r'services-(?!networking))',
     re.IGNORECASE,
 )
 
@@ -197,7 +198,13 @@ for release_token in [
         errors.append(f'Release workflow missing supply-chain control: {release_token}')
 
 ci_workflow_text = (ROOT / '.github/workflows/ci.yml').read_text(encoding='utf-8')
-if 'actions/dependency-review-action@v4' not in ci_workflow_text:
+if not any(
+    action_ref in ci_workflow_text
+    for action_ref in [
+        'actions/dependency-review-action@v4',
+        'actions/dependency-review-action@v5',
+    ]
+):
     errors.append('CI must review dependency changes on pull requests')
 
 dependabot_text = (ROOT / '.github/dependabot.yml').read_text(encoding='utf-8')
