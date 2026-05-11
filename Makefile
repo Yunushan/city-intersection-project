@@ -11,6 +11,7 @@ TOPOLOGY ?= three-node-ha
 TOPOLOGY_VALUES ?= helm/urban-platform-infra/topologies/$(TOPOLOGY).yaml
 INVENTORY ?= inventories/$(ENV)/hosts.yml
 ANSIBLE_PLAYBOOK ?= ansible-playbook
+ANSIBLE_CONFIG ?= ansible/ansible.cfg
 ANSIBLE_ARGS ?=
 CONFIRM_PROD ?= false
 
@@ -41,21 +42,21 @@ configure: ## Update selected runtime defaults in Helm values.
 	python3 scripts/configure.py --engine $(ENGINE) --webserver $(WEB) --database $(DB) --observability $(OBS) --values $(VALUES)
 
 preflight: ## Validate inventory and target readiness before bootstrap/install.
-	$(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/preflight.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/preflight.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
 bootstrap-check: ## Dry-run bootstrap with Ansible check mode and diff.
-	$(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check --diff $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check --diff $(ANSIBLE_ARGS)
 
 bootstrap: ## Bootstrap nodes with common packages, Chrony, HAProxy, Keepalived.
 	$(call require_prod_confirmation)
-	$(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
 install-cluster-check: ## Dry-run cluster install with Ansible check mode and diff.
-	$(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check --diff $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check --diff $(ANSIBLE_ARGS)
 
 install-cluster: ## Install selected cluster engine: rke2, k3s, microk8s, docker, or raw.
 	$(call require_prod_confirmation)
-	$(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
 install-operators: ## Install optional operators/charts needed for HA data and observability profiles.
 	helmfile -f deploy/helmfile.yaml apply
