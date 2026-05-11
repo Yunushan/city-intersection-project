@@ -8,12 +8,31 @@
   when: ansible_system == 'Linux'
   changed_when: false
 
+- name: Persist Kubernetes kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modules-load.d/kubernetes.conf
+    mode: '0644'
+    content: |
+      br_netfilter
+      overlay
+  when: ansible_system == 'Linux'
+
+- name: Load Kubernetes kernel modules
+  ansible.builtin.command: "modprobe {{ item }}"
+  loop:
+    - br_netfilter
+    - overlay
+  changed_when: false
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+
 - name: Configure Kubernetes sysctl values
   ansible.posix.sysctl:
     name: "{{ item.name }}"
     value: "{{ item.value }}"
     state: present
-    reload: true
+    reload: "{{ not ansible_check_mode }}"
   loop:
     - {name: 'net.ipv4.ip_forward', value: '1'}
     - {name: 'net.bridge.bridge-nf-call-iptables', value: '1'}
