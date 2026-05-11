@@ -35,6 +35,7 @@ crash.log
 # Ansible
 *.retry
 ansible/.vault_pass
+.ansible/
 inventories/prod/*
 !inventories/prod/.gitkeep
 
