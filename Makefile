@@ -13,6 +13,7 @@ INVENTORY ?= inventories/$(ENV)/hosts.yml
 ANSIBLE_PLAYBOOK ?= ansible-playbook
 ANSIBLE_CONFIG ?= ansible/ansible.cfg
 ANSIBLE_ARGS ?=
+ANSIBLE_DIFF ?= --diff
 CONFIRM_PROD ?= false
 
 .PHONY: help validate image-policy lint configure preflight bootstrap-check bootstrap install-cluster-check install-cluster install-operators deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
@@ -45,14 +46,14 @@ preflight: ## Validate inventory and target readiness before bootstrap/install.
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/preflight.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
 bootstrap-check: ## Dry-run bootstrap with Ansible check mode and diff.
-	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check --diff $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check $(ANSIBLE_DIFF) $(ANSIBLE_ARGS)
 
 bootstrap: ## Bootstrap nodes with common packages, Chrony, HAProxy, Keepalived.
 	$(call require_prod_confirmation)
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
 install-cluster-check: ## Dry-run cluster install with Ansible check mode and diff.
-	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check --diff $(ANSIBLE_ARGS)
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check $(ANSIBLE_DIFF) $(ANSIBLE_ARGS)
 
 install-cluster: ## Install selected cluster engine: rke2, k3s, microk8s, docker, or raw.
 	$(call require_prod_confirmation)

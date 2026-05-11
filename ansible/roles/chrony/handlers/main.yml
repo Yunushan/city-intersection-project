@@ -3,8 +3,10 @@
   ansible.builtin.service:
     name: chrony
     state: restarted
+  when: not ansible_check_mode
 
 - name: Restart chronyd
   ansible.builtin.service:
     name: chronyd
     state: restarted
+  when: not ansible_check_mode

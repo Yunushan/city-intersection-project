@@ -3,8 +3,10 @@
   ansible.builtin.service:
     name: haproxy
     state: restarted
+  when: not ansible_check_mode
 
 - name: Restart keepalived
   ansible.builtin.service:
     name: keepalived
     state: restarted
+  when: not ansible_check_mode
