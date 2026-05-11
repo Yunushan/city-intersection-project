@@ -64,9 +64,40 @@
     - inventory_hostname in groups.get('rke2_agents', [])
     - not ansible_check_mode
 
-- name: Enable RKE2 services
+- name: Enable RKE2 service
   ansible.builtin.service:
     name: "{{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
     enabled: true
+  when: not ansible_check_mode
+
+- name: Start RKE2 service asynchronously
+  ansible.builtin.command: "systemctl start {{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
+  async: "{{ rke2_service_start_async_timeout | default(900) }}"
+  poll: 0
+  register: rke2_service_start
+  changed_when: true
+  when: not ansible_check_mode
+
+- name: Wait for RKE2 service start command
+  ansible.builtin.async_status:
+    jid: "{{ rke2_service_start.ansible_job_id }}"
+  register: rke2_service_start_result
+  until: rke2_service_start_result.finished
+  retries: "{{ rke2_service_start_retries | default(90) }}"
+  delay: "{{ rke2_service_start_delay | default(10) }}"
+  when: not ansible_check_mode
+
+- name: Confirm RKE2 service is running
+  ansible.builtin.service:
+    name: "{{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
     state: started
   when: not ansible_check_mode
+
+- name: Wait for local RKE2 registration endpoint
+  ansible.builtin.wait_for:
+    host: "{{ node_ip | default(ansible_host) }}"
+    port: 9345
+    timeout: "{{ rke2_local_registration_timeout | default(600) }}"
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
