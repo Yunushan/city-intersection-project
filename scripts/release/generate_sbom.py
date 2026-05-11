@@ -53,7 +53,7 @@ def package_for(path: Path, chart_name: str, chart_version: str) -> dict[str, ob
         'name': path.name,
         'SPDXID': spdx_id(path.name),
         'versionInfo': chart_version,
-        'supplier': 'Organization: city-intersection-project contributors',
+        'supplier': 'Organization: urban-platform-infra contributors',
         'downloadLocation': 'NOASSERTION',
         'filesAnalyzed': False,
         'packageFileName': relative_path(path),
@@ -99,7 +99,7 @@ def build_sbom(chart: Path, dist: Path, rendered: Path | None, sbom: Path, check
             'name': metadata['name'],
             'SPDXID': spdx_id(metadata['name']),
             'versionInfo': metadata['version'],
-            'supplier': 'Organization: city-intersection-project contributors',
+            'supplier': 'Organization: urban-platform-infra contributors',
             'downloadLocation': 'NOASSERTION',
             'filesAnalyzed': False,
             'licenseConcluded': 'NOASSERTION',
@@ -130,8 +130,8 @@ def build_sbom(chart: Path, dist: Path, rendered: Path | None, sbom: Path, check
         'creationInfo': {
             'created': dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace('+00:00', 'Z'),
             'creators': [
-                'Tool: city-intersection-release-metadata/1.0',
-                'Organization: city-intersection-project contributors',
+                'Tool: urban-platform-release-metadata/1.0',
+                'Organization: urban-platform-infra contributors',
             ],
         },
         'packages': packages,
@@ -142,7 +142,7 @@ def build_sbom(chart: Path, dist: Path, rendered: Path | None, sbom: Path, check
 
 def main() -> int:
     parser = argparse.ArgumentParser(description='Generate release SBOM and checksum evidence.')
-    parser.add_argument('--chart', default='helm/city-intersection-platform')
+    parser.add_argument('--chart', default='helm/urban-platform-infra')
     parser.add_argument('--dist', default='dist')
     parser.add_argument('--rendered')
     parser.add_argument('--sbom')

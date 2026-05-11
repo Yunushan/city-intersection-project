@@ -23,11 +23,11 @@ All native pod templates use the chart service account and set `automountService
 
 NetworkPolicy is split into named policies:
 
-- `city-intersection-default-deny` isolates all ingress and egress by default.
-- `city-intersection-same-namespace` allows same-namespace pod communication.
-- `city-intersection-ingress-controller` allows ingress from configured ingress-controller namespaces.
-- `city-intersection-dns-egress` allows DNS only to the configured cluster DNS selector.
-- `city-intersection-external-web-egress` allows configurable outbound TCP ports for package downloads or webhook access.
+- `urban-platform-default-deny` isolates all ingress and egress by default.
+- `urban-platform-same-namespace` allows same-namespace pod communication.
+- `urban-platform-ingress-controller` allows ingress from configured ingress-controller namespaces.
+- `urban-platform-dns-egress` allows DNS only to the configured cluster DNS selector.
+- `urban-platform-external-web-egress` allows configurable outbound TCP ports for package downloads or webhook access.
 
 Keep `externalWeb.cidrs` narrow in production. The default `0.0.0.0/0` is a portable bootstrap setting, not a final enterprise allowlist.
 

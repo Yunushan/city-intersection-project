@@ -23,10 +23,10 @@ cp inventories/topologies/three-node-ha/hosts.yml inventories/prod/hosts.yml
 Use the matching Helm override when rendering or deploying:
 
 ```bash
-helm template city-intersection-project helm/city-intersection-platform \
-  --namespace city-intersection \
-  -f helm/city-intersection-platform/values.yaml \
-  -f helm/city-intersection-platform/topologies/three-node-ha.yaml
+helm template urban-platform-infra helm/urban-platform-infra \
+  --namespace urban-platform \
+  -f helm/urban-platform-infra/values.yaml \
+  -f helm/urban-platform-infra/topologies/three-node-ha.yaml
 ```
 
 For a single-machine compatibility run:

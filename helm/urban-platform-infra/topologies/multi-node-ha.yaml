@@ -5,7 +5,7 @@ global:
   cluster:
     nodes: 5
     vip: 192.0.2.10
-    domain: city-intersection.example
+    domain: urban-platform.example
   scheduling:
     topologySpread: true
     antiAffinity: preferred

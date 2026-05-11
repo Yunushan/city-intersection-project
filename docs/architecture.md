@@ -1,6 +1,6 @@
 # Architecture
 
-`city-intersection-project` separates infrastructure, platform services, and application services.
+`urban-platform-infra` separates infrastructure, platform services, and application services.
 
 ```text
 Users / operators

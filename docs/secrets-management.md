@@ -51,7 +51,7 @@ The repository ignores decrypted outputs and the `secrets/` directory remains pl
 - Keep `inventories/prod/` placeholder-only in Git.
 - Store bootstrap tokens in Ansible Vault, SOPS, or a managed secret provider.
 - Keep registry credentials in an external provider and sync them to `registry-credentials`.
-- Use cert-manager for TLS issuance when possible; otherwise sync `city-intersection-tls` through External Secrets.
+- Use cert-manager for TLS issuance when possible; otherwise sync `urban-platform-tls` through External Secrets.
 - Rotate bootstrap tokens after cluster creation.
 - Rotate any leaked value immediately and treat the Git history as exposed.
 

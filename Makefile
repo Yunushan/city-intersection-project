@@ -1,14 +1,14 @@
 SHELL := /usr/bin/env bash
-PROJECT ?= city-intersection-project
+PROJECT ?= urban-platform-infra
 ENV ?= prod
 ENGINE ?= rke2
 WEB ?= nginx
 DB ?= postgresql
 OBS ?= elasticsearch
-NAMESPACE ?= city-intersection
-VALUES ?= helm/city-intersection-platform/values.yaml
+NAMESPACE ?= urban-platform
+VALUES ?= helm/urban-platform-infra/values.yaml
 TOPOLOGY ?= three-node-ha
-TOPOLOGY_VALUES ?= helm/city-intersection-platform/topologies/$(TOPOLOGY).yaml
+TOPOLOGY_VALUES ?= helm/urban-platform-infra/topologies/$(TOPOLOGY).yaml
 INVENTORY ?= inventories/$(ENV)/hosts.yml
 ANSIBLE_PLAYBOOK ?= ansible-playbook
 ANSIBLE_ARGS ?=
@@ -61,25 +61,25 @@ install-operators: ## Install optional operators/charts needed for HA data and o
 	helmfile -f deploy/helmfile.yaml apply
 
 deploy-dry-run: ## Render the Helm chart without applying it.
-	helm template $(PROJECT) helm/city-intersection-platform --namespace $(NAMESPACE) -f $(VALUES) -f $(TOPOLOGY_VALUES) --dry-run > rendered.yaml
+	helm template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) -f $(TOPOLOGY_VALUES) --dry-run > rendered.yaml
 
 policy: ## Run policy checks against rendered manifests.
 	mkdir -p reports
-	helm template $(PROJECT) helm/city-intersection-platform --namespace $(NAMESPACE) -f $(VALUES) -f $(TOPOLOGY_VALUES) > reports/rendered.yaml
+	helm template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) -f $(TOPOLOGY_VALUES) > reports/rendered.yaml
 	python3 tests/policy/basic_policy.py reports/rendered.yaml
 
 package-chart: ## Package the Helm chart into dist/.
 	mkdir -p dist
-	helm dependency build helm/city-intersection-platform
-	helm lint helm/city-intersection-platform
-	helm package helm/city-intersection-platform -d dist
+	helm dependency build helm/urban-platform-infra
+	helm lint helm/urban-platform-infra
+	helm package helm/urban-platform-infra -d dist
 
 release-evidence: package-chart ## Generate rendered manifest, SPDX SBOM, and checksums for a release.
-	helm template $(PROJECT) helm/city-intersection-platform --namespace $(NAMESPACE) -f $(VALUES) > dist/rendered.yaml
-	python3 scripts/release/generate_sbom.py --chart helm/city-intersection-platform --dist dist --rendered dist/rendered.yaml --sbom dist/city-intersection-platform.spdx.json --checksums dist/SHA256SUMS
+	helm template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) > dist/rendered.yaml
+	python3 scripts/release/generate_sbom.py --chart helm/urban-platform-infra --dist dist --rendered dist/rendered.yaml --sbom dist/urban-platform-infra.spdx.json --checksums dist/SHA256SUMS
 
 deploy: ## Deploy/upgrade the HA application platform.
-	helm upgrade --install $(PROJECT) helm/city-intersection-platform --namespace $(NAMESPACE) --create-namespace -f $(VALUES) -f $(TOPOLOGY_VALUES)
+	helm upgrade --install $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) --create-namespace -f $(VALUES) -f $(TOPOLOGY_VALUES)
 
 status: ## Show cluster and workload status.
 	scripts/health/status.sh $(NAMESPACE)

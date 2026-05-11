@@ -1,20 +1,20 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: city-intersection-project
+  name: urban-platform-infra
   namespace: argocd
 spec:
   project: default
   source:
-    repoURL: https://git.example.com/platform/city-intersection-project.git
+    repoURL: https://git.example.com/platform/urban-platform-infra.git
     targetRevision: main
-    path: helm/city-intersection-platform
+    path: helm/urban-platform-infra
     helm:
       valueFiles:
         - values.yaml
   destination:
     server: https://kubernetes.default.svc
-    namespace: city-intersection
+    namespace: urban-platform
   syncPolicy:
     automated:
       prune: false

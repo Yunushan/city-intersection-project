@@ -21,7 +21,7 @@ Service objectives live in `config/slo.yaml`. Alert runbooks live in `docs/runbo
 
 ## Upgrade Image Tags
 
-Edit `helm/city-intersection-platform/values.yaml` or use dependency automation to propose changes. Production overrides should use private-registry digest pins after image promotion.
+Edit `helm/urban-platform-infra/values.yaml` or use dependency automation to propose changes. Production overrides should use private-registry digest pins after image promotion.
 
 ## Backup
 
@@ -48,6 +48,6 @@ Default pipeline: Logstash -> Elasticsearch -> Kibana. Optional pipelines are co
 ## Rollback
 
 ```bash
-helm history city-intersection-project -n city-intersection
-helm rollback city-intersection-project <REVISION> -n city-intersection
+helm history urban-platform-infra -n urban-platform
+helm rollback urban-platform-infra <REVISION> -n urban-platform
 ```

@@ -1,4 +1,4 @@
-<h1 align="center">City Intersection Project</h1>
+<h1 align="center">Urban Platform Infra</h1>
 
 <p align="center">
   <strong>Enterprise-first HA smart-city intersection platform workspace with 3-node RKE2, live service deployment, web gateway, databases, observability, and multi-platform installation scaffolding.</strong>
@@ -41,15 +41,15 @@
 
 ---
 
-A desktop/operator-first and production-ready deployment workspace for the **city-intersection-project** stack. It is centered on a default **3-node RKE2 Kubernetes cluster** running on **Ubuntu 24.04**, with HAProxy/Keepalived for the control-plane virtual IP, Chrony for time sync, Helm-based application deployment, Docker Swarm/Compose fallback, raw-install scaffolding, and GitHub/GitLab private-repository readiness.
+A desktop/operator-first and production-ready deployment workspace for the **urban-platform-infra** stack. It is centered on a default **3-node RKE2 Kubernetes cluster** running on **Ubuntu 24.04**, with HAProxy/Keepalived for the control-plane virtual IP, Chrony for time sync, Helm-based application deployment, Docker Swarm/Compose fallback, raw-install scaffolding, and GitHub/GitLab private-repository readiness.
 
-The project is designed so defaults can be changed from configuration instead of editing templates: cluster engine, web server, database family, observability backend, registry, replica counts, hostnames, storage class, TLS, image tags, and platform profile all live under `config/` and `helm/city-intersection-platform/values.yaml`.
+The project is designed so defaults can be changed from configuration instead of editing templates: cluster engine, web server, database family, observability backend, registry, replica counts, hostnames, storage class, TLS, image tags, and platform profile all live under `config/` and `helm/urban-platform-infra/values.yaml`.
 
 ## Quick Start
 
 ```bash
-git init city-intersection-project
-cd city-intersection-project
+git init urban-platform-infra
+cd urban-platform-infra
 # copy this repository content into the directory, or unzip the delivered artifact here
 
 cp inventories/example/hosts.yml inventories/prod/hosts.yml
@@ -109,9 +109,9 @@ Supported topology profiles:
 - `three-node-ha`: default production HA.
 - `multi-node-ha`: three or five control-plane nodes plus scalable workers.
 
-Topology contracts are in [`config/deployment-topologies.yaml`](config/deployment-topologies.yaml), Helm overrides are in [`helm/city-intersection-platform/topologies/`](helm/city-intersection-platform/topologies/), and starter inventories are in [`inventories/topologies/`](inventories/topologies/).
+Topology contracts are in [`config/deployment-topologies.yaml`](config/deployment-topologies.yaml), Helm overrides are in [`helm/urban-platform-infra/topologies/`](helm/urban-platform-infra/topologies/), and starter inventories are in [`inventories/topologies/`](inventories/topologies/).
 
-The image and port inventory is stored in [`config/services.catalog.yaml`](config/services.catalog.yaml). Helm values are stored in [`helm/city-intersection-platform/values.yaml`](helm/city-intersection-platform/values.yaml).
+The image and port inventory is stored in [`config/services.catalog.yaml`](config/services.catalog.yaml). Helm values are stored in [`helm/urban-platform-infra/values.yaml`](helm/urban-platform-infra/values.yaml).
 
 ## Changeable defaults
 
@@ -147,7 +147,7 @@ Supported database profiles are defined in [`config/databases.catalog.yaml`](con
 ├── config/                          # Cluster, services, database, webserver, observability, OS profiles
 ├── deploy/                          # Helmfile, Argo CD application, kustomize entrypoints
 ├── docs/                            # Architecture, HA, platform, operations, release, security, troubleshooting
-├── helm/city-intersection-platform/ # Main Helm chart for the HA application platform
+├── helm/urban-platform-infra/ # Main Helm chart for the HA application platform
 ├── inventories/                     # Example 3-node inventory, production copy target
 ├── platform/                        # Linux/BSD/macOS/Windows helper scripts and raw templates
 ├── scripts/                         # Repo setup, image preload/push, configuration, health checks

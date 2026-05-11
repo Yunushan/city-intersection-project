@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-NS="${1:-city-intersection}"
+NS="${1:-urban-platform}"
 
 echo "== Nodes =="
 kubectl get nodes -o wide || true

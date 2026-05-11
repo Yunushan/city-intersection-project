@@ -1,8 +1,8 @@
 source: sanitized sample service catalog
-project: city-intersection-project
+project: urban-platform-infra
 defaults:
   replicas: 3
-  namespace: city-intersection
+  namespace: urban-platform
 images:
 - name: app-01
   image: example-app-01:0.1.0

@@ -35,7 +35,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: zookeeper
-        app.kubernetes.io/part-of: city-intersection-project
+        app.kubernetes.io/part-of: urban-platform-infra
     spec:
       {{- include "cip.podSpecDefaults" . | nindent 6 }}
       containers:
@@ -108,7 +108,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: kafka
-        app.kubernetes.io/part-of: city-intersection-project
+        app.kubernetes.io/part-of: urban-platform-infra
     spec:
       {{- include "cip.podSpecDefaults" . | nindent 6 }}
       containers:
@@ -189,7 +189,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: kafka-ui
-        app.kubernetes.io/part-of: city-intersection-project
+        app.kubernetes.io/part-of: urban-platform-infra
     spec:
       {{- include "cip.podSpecDefaults" . | nindent 6 }}
       containers:
@@ -198,7 +198,7 @@ spec:
           imagePullPolicy: {{ .Values.global.imagePullPolicy | quote }}
           env:
             - name: KAFKA_CLUSTERS_0_NAME
-              value: city-intersection
+              value: urban-platform
             - name: KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS
               value: kafka:9092
           ports:

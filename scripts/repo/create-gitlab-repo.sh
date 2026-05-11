@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PROJECT_NAME="${PROJECT_NAME:-city-intersection-project}"
+PROJECT_NAME="${PROJECT_NAME:-urban-platform-infra}"
 GITLAB_URL="${GITLAB_URL:-https://gitlab.com}"
 VISIBILITY="${GITLAB_VISIBILITY:-private}"
 : "${GITLAB_TOKEN:?Set GITLAB_TOKEN with api scope}"

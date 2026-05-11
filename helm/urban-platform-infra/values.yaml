@@ -1,5 +1,5 @@
 global:
-  projectName: city-intersection-project
+  projectName: urban-platform-infra
   environment: production
   imageRegistry: ''
   imagePullSecrets: []
@@ -16,7 +16,7 @@ global:
     nodes: 3
     defaultOs: ubuntu-24.04
     vip: 192.0.2.10
-    domain: city-intersection.example
+    domain: urban-platform.example
   security:
     runAsNonRoot: true
     readOnlyRootFilesystem: false
@@ -34,7 +34,7 @@ global:
     antiAffinity: preferred
 namespace:
   create: true
-  name: city-intersection
+  name: urban-platform
   podSecurity:
     enforce: baseline
     audit: restricted
@@ -43,10 +43,10 @@ namespace:
 ingress:
   enabled: true
   className: nginx
-  host: city-intersection.example
+  host: urban-platform.example
   tls:
     enabled: false
-    secretName: city-intersection-tls
+    secretName: urban-platform-tls
 secretManagement:
   enabled: false
   provider: external-secrets
@@ -64,21 +64,21 @@ secretManagement:
       data:
       - secretKey: .dockerconfigjson
         remoteRef:
-          key: example/city-intersection/registry/dockerconfigjson
+          key: example/urban-platform/registry/dockerconfigjson
     ingressTls:
       enabled: false
-      targetName: city-intersection-tls
+      targetName: urban-platform-tls
       type: kubernetes.io/tls
       creationPolicy: Owner
       immutable: false
       data:
       - secretKey: tls.crt
         remoteRef:
-          key: example/city-intersection/ingress/tls
+          key: example/urban-platform/ingress/tls
           property: tls.crt
       - secretKey: tls.key
         remoteRef:
-          key: example/city-intersection/ingress/tls
+          key: example/urban-platform/ingress/tls
           property: tls.key
 autoscaling:
   enabled: true
@@ -572,7 +572,7 @@ monitoring:
   prometheusRules:
     enabled: true
     evaluationInterval: 1m
-    runbookBaseUrl: https://example.com/runbooks/city-intersection
+    runbookBaseUrl: https://example.com/runbooks/urban-platform
     severity:
       page: critical
       ticket: warning
@@ -584,7 +584,7 @@ monitoring:
     targets: []
   dashboards:
     enabled: false
-    folder: city-intersection
+    folder: urban-platform
 workloads:
   app-01:
     enabled: true

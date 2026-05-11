@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PROJECT_NAME="${PROJECT_NAME:-city-intersection-project}"
+PROJECT_NAME="${PROJECT_NAME:-urban-platform-infra}"
 OWNER="${GITHUB_OWNER:-}"
 VISIBILITY="${GITHUB_VISIBILITY:-private}"
 

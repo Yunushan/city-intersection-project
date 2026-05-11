@@ -10,4 +10,4 @@ python3 scripts/configure.py --webserver traefik
 make deploy
 ```
 
-Profiles are in `config/webservers.yaml` and `helm/city-intersection-platform/values.yaml`.
+Profiles are in `config/webservers.yaml` and `helm/urban-platform-infra/values.yaml`.

@@ -23,7 +23,7 @@ monitoring:
     releaseLabel: kube-prometheus-stack
   prometheusRules:
     enabled: true
-    runbookBaseUrl: https://example.com/runbooks/city-intersection
+    runbookBaseUrl: https://example.com/runbooks/urban-platform
 ```
 
 The chart emits `PrometheusRule` resources for Kubernetes availability signals:

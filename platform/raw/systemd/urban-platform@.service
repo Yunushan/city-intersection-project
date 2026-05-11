@@ -1,14 +1,14 @@
 [Unit]
-Description=City Intersection raw service %i
+Description=Urban Platform raw service %i
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 User=citysvc
 Group=citysvc
-WorkingDirectory=/opt/city-intersection/%i
-EnvironmentFile=-/etc/city-intersection/%i.env
-ExecStart=/opt/city-intersection/%i/%i
+WorkingDirectory=/opt/urban-platform/%i
+EnvironmentFile=-/etc/urban-platform/%i.env
+ExecStart=/opt/urban-platform/%i/%i
 Restart=always
 RestartSec=5
 NoNewPrivileges=true

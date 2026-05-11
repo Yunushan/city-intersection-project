@@ -3,17 +3,17 @@
 {{- end -}}
 
 {{- define "cip.namespace" -}}
-{{- default "city-intersection" .Values.namespace.name -}}
+{{- default "urban-platform" .Values.namespace.name -}}
 {{- end -}}
 
 {{- define "cip.labels" -}}
-app.kubernetes.io/part-of: city-intersection-project
+app.kubernetes.io/part-of: urban-platform-infra
 app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
 helm.sh/chart: {{ printf "%s-%s" .Chart.Name .Chart.Version | quote }}
 {{- end -}}
 
 {{- define "cip.selectorLabels" -}}
-app.kubernetes.io/part-of: city-intersection-project
+app.kubernetes.io/part-of: urban-platform-infra
 {{- end -}}
 
 {{- define "cip.image" -}}

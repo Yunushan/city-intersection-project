@@ -1,15 +1,15 @@
 version: '3.9'
-name: city-intersection-project
+name: urban-platform-infra
 x-defaults:
   restart: unless-stopped
   networks:
-  - city-intersection
+  - urban-platform
 services:
   app-01:
     image: ${REGISTRY_PREFIX:-}example-app-01:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -21,7 +21,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-02:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -32,7 +32,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-03:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -44,7 +44,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-04:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -56,7 +56,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-05:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -67,7 +67,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-06:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -78,7 +78,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-07:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -89,7 +89,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-08:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -100,7 +100,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-09:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -111,7 +111,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-10:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -122,7 +122,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-11:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -133,7 +133,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-12:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -144,7 +144,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-13:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -155,7 +155,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-14:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -166,7 +166,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-15:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -177,7 +177,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-16:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -188,7 +188,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-17:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -199,7 +199,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-18:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -210,7 +210,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-19:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -221,7 +221,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-20:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -232,7 +232,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-21:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -243,7 +243,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-22:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -254,7 +254,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-23:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -265,7 +265,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-24:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -276,7 +276,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-25:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -287,7 +287,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-26:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -298,7 +298,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-27:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -309,7 +309,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-28:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -320,7 +320,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-29:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -331,7 +331,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-30:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -342,7 +342,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-31:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -353,7 +353,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-32:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -364,7 +364,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-33:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -375,7 +375,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-34:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -386,7 +386,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-35:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -397,7 +397,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-36:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -408,7 +408,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-37:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -419,7 +419,7 @@ services:
     image: ${REGISTRY_PREFIX:-}example-app-38:0.1.0
     restart: unless-stopped
     networks:
-    - city-intersection
+    - urban-platform
     environment:
     - ASPNETCORE_ENVIRONMENT=Production
     deploy:
@@ -433,7 +433,7 @@ services:
     - 80:80
     - 443:443
     networks:
-    - city-intersection
+    - urban-platform
     deploy:
       replicas: 3
   zookeeper:
@@ -443,7 +443,7 @@ services:
     - ZOOKEEPER_CLIENT_PORT=2181
     - ZOOKEEPER_TICK_TIME=2000
     networks:
-    - city-intersection
+    - urban-platform
     deploy:
       replicas: 1
   kafka:
@@ -461,26 +461,26 @@ services:
     - KAFKA_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT
     - KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR=1
     networks:
-    - city-intersection
+    - urban-platform
   kafka-ui:
     image: provectuslabs/kafka-ui:v0.7.2
     restart: unless-stopped
     ports:
     - 8080:8080
     environment:
-    - KAFKA_CLUSTERS_0_NAME=city-intersection
+    - KAFKA_CLUSTERS_0_NAME=urban-platform
     - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
     depends_on:
     - kafka
     networks:
-    - city-intersection
+    - urban-platform
   redis:
     image: redis:6.2
     restart: unless-stopped
     ports:
     - 6379:6379
     networks:
-    - city-intersection
+    - urban-platform
   elasticsearch:
     image: elasticsearch:8.12.0
     restart: unless-stopped
@@ -493,7 +493,7 @@ services:
     volumes:
     - elasticsearch-data:/usr/share/elasticsearch/data
     networks:
-    - city-intersection
+    - urban-platform
   kibana:
     image: kibana:8.12.0
     restart: unless-stopped
@@ -504,21 +504,21 @@ services:
     environment:
     - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
     networks:
-    - city-intersection
+    - urban-platform
   logstash:
     image: logstash:8.12.0
     restart: unless-stopped
     ports:
     - 5044:5044
     networks:
-    - city-intersection
+    - urban-platform
   zabbix-agent2:
     image: zabbix/zabbix-agent2:ubuntu-7.0.25
     restart: unless-stopped
     ports:
     - 10050:10050
     networks:
-    - city-intersection
+    - urban-platform
   db-01-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -531,7 +531,7 @@ services:
     volumes:
     - db-01-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-02-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -544,7 +544,7 @@ services:
     volumes:
     - db-02-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-03-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -557,7 +557,7 @@ services:
     volumes:
     - db-03-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-04-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -570,7 +570,7 @@ services:
     volumes:
     - db-04-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-05-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -583,7 +583,7 @@ services:
     volumes:
     - db-05-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-06-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -596,7 +596,7 @@ services:
     volumes:
     - db-06-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-07-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -609,7 +609,7 @@ services:
     volumes:
     - db-07-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-08-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -622,7 +622,7 @@ services:
     volumes:
     - db-08-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-09-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -635,7 +635,7 @@ services:
     volumes:
     - db-09-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-10-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -648,7 +648,7 @@ services:
     volumes:
     - db-10-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-11-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -661,7 +661,7 @@ services:
     volumes:
     - db-11-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-12-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -674,7 +674,7 @@ services:
     volumes:
     - db-12-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-13-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -687,7 +687,7 @@ services:
     volumes:
     - db-13-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-14-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -700,7 +700,7 @@ services:
     volumes:
     - db-14-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-15-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -713,7 +713,7 @@ services:
     volumes:
     - db-15-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-16-postgres:
     image: postgres:16.2
     restart: unless-stopped
@@ -726,7 +726,7 @@ services:
     volumes:
     - db-16-postgres-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   db-17-postgis:
     image: postgis/postgis:16-3.4
     restart: unless-stopped
@@ -739,7 +739,7 @@ services:
     volumes:
     - db-17-postgis-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
   timescaledb:
     image: timescale/timescaledb:2.26.4-pg16
     restart: unless-stopped
@@ -752,9 +752,9 @@ services:
     volumes:
     - timescaledb-data:/var/lib/postgresql/data
     networks:
-    - city-intersection
+    - urban-platform
 networks:
-  city-intersection:
+  urban-platform:
     driver: bridge
 volumes:
   elasticsearch-data: {}

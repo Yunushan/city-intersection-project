@@ -16,10 +16,10 @@ permissions:
 
 env:
   PYTHON_VERSION: '3.12'
-  HELM_CHART: helm/city-intersection-platform
-  RELEASE_NAME: city-intersection-project
-  NAMESPACE: city-intersection
-  VALUES_FILE: helm/city-intersection-platform/values.yaml
+  HELM_CHART: helm/urban-platform-infra
+  RELEASE_NAME: urban-platform-infra
+  NAMESPACE: urban-platform
+  VALUES_FILE: helm/urban-platform-infra/values.yaml
   RENDERED_MANIFEST: reports/rendered.yaml
 
 jobs:

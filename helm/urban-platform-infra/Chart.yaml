@@ -1,0 +1,20 @@
+apiVersion: v2
+name: urban-platform-infra
+description: Enterprise HA Helm chart for the urban-platform-infra application and platform stack.
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - smart-city
+  - intersection
+  - rke2
+  - high-availability
+  - kubernetes
+home: https://example.com/urban-platform-infra
+sources:
+  - https://example.com/urban-platform-infra
+maintainers:
+  - name: urban-platform-infra contributors
+    email: platform@example.com
+annotations:
+  artifacthub.io/license: MIT

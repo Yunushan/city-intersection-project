@@ -97,7 +97,7 @@ def main() -> int:
         for item in policy['approvedRuntimeImages']
     }
 
-    values = load_yaml('helm/city-intersection-platform/values.yaml')
+    values = load_yaml('helm/urban-platform-infra/values.yaml')
     for path, image in image_objects_from_values(values):
         repository = as_text(image.get('repository', ''))
         tag = image.get('tag')

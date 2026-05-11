@@ -1,7 +1,7 @@
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: city-intersection-service-catalog
+  name: urban-platform-service-catalog
   namespace: {{ include "cip.namespace" . }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}

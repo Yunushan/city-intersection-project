@@ -1,7 +1,7 @@
 ---
 - import_playbook: preflight.yml
 
-- name: Bootstrap city-intersection cluster nodes
+- name: Bootstrap urban-platform cluster nodes
   hosts: cluster_nodes
   become: true
   gather_facts: true

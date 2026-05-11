@@ -10,7 +10,7 @@ metadata:
   labels:
     {{- include "cip.labels" . | nindent 4 }}
     app.kubernetes.io/name: webserver-{{ $providerName }}
-    city-intersection.io/component: webserver
+    urban-platform.io/component: webserver
 spec:
   replicas: {{ include "cip.replicaCount" (list . ($provider.replicas | default 3)) }}
   selector:
@@ -20,7 +20,7 @@ spec:
     metadata:
       labels:
         app.kubernetes.io/name: webserver-{{ $providerName }}
-        app.kubernetes.io/part-of: city-intersection-project
+        app.kubernetes.io/part-of: urban-platform-infra
     spec:
       serviceAccountName: {{ include "cip.serviceAccountName" . }}
       automountServiceAccountToken: {{ .Values.global.serviceAccount.automountServiceAccountToken | default false }}

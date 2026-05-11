@@ -52,5 +52,5 @@ Check the runbook first, then open the required dashboard list:
 
 ```bash
 grep -A20 '^dashboards:' config/slo.yaml
-kubectl -n city-intersection get prometheusrules.monitoring.coreos.com
+kubectl -n urban-platform get prometheusrules.monitoring.coreos.com
 ```

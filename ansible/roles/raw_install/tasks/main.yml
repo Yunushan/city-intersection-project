@@ -5,13 +5,13 @@
     state: directory
     mode: '0755'
   loop:
-    - /opt/city-intersection
-    - /etc/city-intersection
-    - /var/log/city-intersection
+    - /opt/urban-platform
+    - /etc/urban-platform
+    - /var/log/urban-platform
 
 - name: Render raw systemd service template for Linux hosts
   ansible.builtin.template:
-    src: city-intersection.service.j2
-    dest: /etc/systemd/system/city-intersection@.service
+    src: urban-platform.service.j2
+    dest: /etc/systemd/system/urban-platform@.service
     mode: '0644'
   when: ansible_system == 'Linux'

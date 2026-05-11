@@ -9,17 +9,17 @@ Alert: `CityIntersectionDeploymentReplicasUnavailable`
 1. Check the deployment and events:
 
 ```bash
-kubectl -n city-intersection get deploy,po
-kubectl -n city-intersection describe deploy <deployment>
-kubectl -n city-intersection get events --sort-by=.lastTimestamp
+kubectl -n urban-platform get deploy,po
+kubectl -n urban-platform describe deploy <deployment>
+kubectl -n urban-platform get events --sort-by=.lastTimestamp
 ```
 
 2. Check image pulls, scheduling, probes, and resource pressure.
 3. Roll back if the issue follows a recent deployment:
 
 ```bash
-helm history city-intersection-project -n city-intersection
-helm rollback city-intersection-project <REVISION> -n city-intersection
+helm history urban-platform-infra -n urban-platform
+helm rollback urban-platform-infra <REVISION> -n urban-platform
 ```
 
 ## StatefulSet Replicas Unavailable
@@ -29,8 +29,8 @@ Alert: `CityIntersectionStatefulSetReplicasUnavailable`
 1. Identify the affected dependency:
 
 ```bash
-kubectl -n city-intersection get sts,po,pvc
-kubectl -n city-intersection describe sts <statefulset>
+kubectl -n urban-platform get sts,po,pvc
+kubectl -n urban-platform describe sts <statefulset>
 ```
 
 2. Check PVC binding, node pressure, anti-affinity placement, and recent restarts.
@@ -43,8 +43,8 @@ Alert: `CityIntersectionContainerRestartingTooOften`
 1. Inspect the restart reason:
 
 ```bash
-kubectl -n city-intersection describe pod <pod>
-kubectl -n city-intersection logs <pod> --previous
+kubectl -n urban-platform describe pod <pod>
+kubectl -n urban-platform logs <pod> --previous
 ```
 
 2. Check memory limits, startup time, dependency connection errors, and probe thresholds.
@@ -57,8 +57,8 @@ Alert: `CityIntersectionHPASaturated`
 1. Check HPA and pod resource usage:
 
 ```bash
-kubectl -n city-intersection get hpa
-kubectl -n city-intersection top pods
+kubectl -n urban-platform get hpa
+kubectl -n urban-platform top pods
 ```
 
 2. Increase capacity only after confirming the load is expected.
@@ -71,8 +71,8 @@ Alert: `CityIntersectionPersistentVolumeFilling`
 1. Identify the PVC and owning workload:
 
 ```bash
-kubectl -n city-intersection get pvc
-kubectl -n city-intersection describe pvc <pvc>
+kubectl -n urban-platform get pvc
+kubectl -n urban-platform describe pvc <pvc>
 ```
 
 2. Check retention settings, log growth, Kafka topics, Redis persistence, Elasticsearch shards, and database backups.
@@ -84,5 +84,5 @@ kubectl -n city-intersection describe pvc <pvc>
 make status
 make observability-status
 kubectl -n observability get pods,svc
-kubectl -n city-intersection get prometheusrules.monitoring.coreos.com
+kubectl -n urban-platform get prometheusrules.monitoring.coreos.com
 ```

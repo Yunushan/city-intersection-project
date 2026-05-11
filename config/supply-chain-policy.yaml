@@ -19,7 +19,7 @@ policy:
     enabledForPullRequests: true
     failOnSeverity: high
   releaseArtifacts:
-    chartPackage: dist/city-intersection-platform-<version>.tgz
+    chartPackage: dist/urban-platform-infra-<version>.tgz
     renderedManifest: dist/rendered.yaml
-    sbom: dist/city-intersection-platform.spdx.json
+    sbom: dist/urban-platform-infra.spdx.json
     checksums: dist/SHA256SUMS

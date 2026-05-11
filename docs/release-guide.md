@@ -5,7 +5,7 @@ Releases are chart releases. They package the Helm chart and publish release evi
 ## Local Checklist
 
 1. Update `CHANGELOG.md` if the release changes user-visible behavior.
-2. Confirm `helm/city-intersection-platform/Chart.yaml` has the intended `version`.
+2. Confirm `helm/urban-platform-infra/Chart.yaml` has the intended `version`.
 3. Run the local gates:
 
 ```bash
@@ -27,7 +27,7 @@ sha256sum -c dist/SHA256SUMS
 The Git tag must match the Helm chart version exactly after removing the leading `v`.
 
 ```bash
-git tag -a v0.1.0 -m "city-intersection-project v0.1.0"
+git tag -a v0.1.0 -m "urban-platform-infra v0.1.0"
 git push origin v0.1.0
 ```
 
@@ -37,7 +37,7 @@ GitHub Actions packages the Helm chart on tags matching `v*.*.*`, renders the de
 
 ```bash
 sha256sum -c dist/SHA256SUMS
-gh attestation verify dist/city-intersection-platform-0.1.0.tgz --repo OWNER/REPO
+gh attestation verify dist/urban-platform-infra-0.1.0.tgz --repo OWNER/REPO
 ```
 
 If the repository is private and artifact attestations are not available on the current GitHub plan, keep checksums and SBOMs as mandatory release evidence and enable private attestations before regulated production use.

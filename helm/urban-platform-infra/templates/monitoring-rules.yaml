@@ -5,18 +5,18 @@
 apiVersion: monitoring.coreos.com/v1
 kind: PrometheusRule
 metadata:
-  name: city-intersection-slo
+  name: urban-platform-slo
   namespace: {{ $namespace }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}
-    app.kubernetes.io/name: city-intersection-slo
+    app.kubernetes.io/name: urban-platform-slo
     release: {{ .Values.monitoring.prometheus.releaseLabel | quote }}
     {{- with .Values.monitoring.prometheus.ruleLabels }}
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
   groups:
-    - name: city-intersection.slo.availability
+    - name: urban-platform.slo.availability
       interval: {{ .Values.monitoring.prometheusRules.evaluationInterval | default "1m" | quote }}
       rules:
         - alert: CityIntersectionDeploymentReplicasUnavailable
@@ -28,7 +28,7 @@ spec:
             slo: availability
             team: platform
           annotations:
-            summary: "City Intersection deployment replicas unavailable"
+            summary: "Urban Platform deployment replicas unavailable"
             description: "A deployment has fewer available replicas than desired for more than 10 minutes."
             runbook_url: {{ printf "%s/deployment-replicas-unavailable" $runbooks | quote }}
         - alert: CityIntersectionStatefulSetReplicasUnavailable
@@ -40,7 +40,7 @@ spec:
             slo: availability
             team: platform
           annotations:
-            summary: "City Intersection stateful replicas unavailable"
+            summary: "Urban Platform stateful replicas unavailable"
             description: "A stateful dependency has fewer ready replicas than desired for more than 10 minutes."
             runbook_url: {{ printf "%s/statefulset-replicas-unavailable" $runbooks | quote }}
         - alert: CityIntersectionContainerRestartingTooOften
@@ -52,7 +52,7 @@ spec:
             slo: stability
             team: platform
           annotations:
-            summary: "City Intersection container restart rate is elevated"
+            summary: "Urban Platform container restart rate is elevated"
             description: "A container restarted more than three times in 15 minutes."
             runbook_url: {{ printf "%s/container-restarts" $runbooks | quote }}
         - alert: CityIntersectionHPASaturated
@@ -64,7 +64,7 @@ spec:
             slo: capacity
             team: platform
           annotations:
-            summary: "City Intersection HPA is saturated"
+            summary: "Urban Platform HPA is saturated"
             description: "An HPA has run at maximum replicas for at least 15 minutes."
             runbook_url: {{ printf "%s/hpa-saturated" $runbooks | quote }}
         - alert: CityIntersectionPersistentVolumeFilling
@@ -76,7 +76,7 @@ spec:
             slo: data
             team: platform
           annotations:
-            summary: "City Intersection persistent volume capacity is low"
+            summary: "Urban Platform persistent volume capacity is low"
             description: "A persistent volume has less than 15 percent capacity available."
             runbook_url: {{ printf "%s/persistent-volume-filling" $runbooks | quote }}
 {{- end }}

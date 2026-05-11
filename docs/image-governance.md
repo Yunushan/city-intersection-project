@@ -25,7 +25,7 @@ Recommended production override style:
 
 ```yaml
 global:
-  imageRegistry: registry.example.com/city-intersection
+  imageRegistry: registry.example.com/urban-platform
   imagePullSecrets:
     - registry-credentials
 

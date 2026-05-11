@@ -23,13 +23,13 @@ concurrency:
 
 env:
   PYTHON_VERSION: '3.12'
-  HELM_CHART: helm/city-intersection-platform
-  RELEASE_NAME: city-intersection-project
-  NAMESPACE: city-intersection
-  VALUES_FILE: helm/city-intersection-platform/values.yaml
+  HELM_CHART: helm/urban-platform-infra
+  RELEASE_NAME: urban-platform-infra
+  NAMESPACE: urban-platform
+  VALUES_FILE: helm/urban-platform-infra/values.yaml
   DIST_DIR: dist
   RENDERED_MANIFEST: dist/rendered.yaml
-  SBOM_FILE: dist/city-intersection-platform.spdx.json
+  SBOM_FILE: dist/urban-platform-infra.spdx.json
   CHECKSUM_FILE: dist/SHA256SUMS
 
 jobs:
@@ -109,7 +109,7 @@ jobs:
       - name: Upload release evidence
         uses: actions/upload-artifact@v7
         with:
-          name: city-intersection-platform-release-evidence
+          name: urban-platform-infra-release-evidence
           path: |
             ${{ env.DIST_DIR }}/*.tgz
             ${{ env.RENDERED_MANIFEST }}

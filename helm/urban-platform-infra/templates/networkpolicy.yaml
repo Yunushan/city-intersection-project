@@ -3,7 +3,7 @@
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: city-intersection-default-deny
+  name: urban-platform-default-deny
   namespace: {{ include "cip.namespace" . }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}
@@ -18,7 +18,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: city-intersection-same-namespace
+  name: urban-platform-same-namespace
   namespace: {{ include "cip.namespace" . }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}
@@ -39,7 +39,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: city-intersection-ingress-controller
+  name: urban-platform-ingress-controller
   namespace: {{ include "cip.namespace" . }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}
@@ -60,7 +60,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: city-intersection-dns-egress
+  name: urban-platform-dns-egress
   namespace: {{ include "cip.namespace" . }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}
@@ -89,7 +89,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
 metadata:
-  name: city-intersection-external-web-egress
+  name: urban-platform-external-web-egress
   namespace: {{ include "cip.namespace" . }}
   labels:
     {{- include "cip.labels" . | nindent 4 }}

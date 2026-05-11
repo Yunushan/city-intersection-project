@@ -6,21 +6,21 @@ This repository ships infrastructure deployment assets, not private operational 
 
 Release integrity depends on four controls:
 
-1. The Git tag must match `helm/city-intersection-platform/Chart.yaml`.
+1. The Git tag must match `helm/urban-platform-infra/Chart.yaml`.
 2. Every packaged chart release must include SHA-256 checksums.
 3. Every packaged chart release must include an SPDX JSON SBOM.
 4. GitHub releases must produce artifact attestations with OIDC-backed signing.
 
-The GitHub release workflow packages the Helm chart, renders the default manifest, generates `dist/SHA256SUMS`, generates `dist/city-intersection-platform.spdx.json`, and attests the evidence with GitHub artifact attestations. The GitLab tag pipeline mirrors the checksum and SBOM evidence path for private GitLab users.
+The GitHub release workflow packages the Helm chart, renders the default manifest, generates `dist/SHA256SUMS`, generates `dist/urban-platform-infra.spdx.json`, and attests the evidence with GitHub artifact attestations. The GitLab tag pipeline mirrors the checksum and SBOM evidence path for private GitLab users.
 
 ## Release Evidence
 
 Expected release evidence:
 
 ```text
-dist/city-intersection-platform-<version>.tgz
+dist/urban-platform-infra-<version>.tgz
 dist/rendered.yaml
-dist/city-intersection-platform.spdx.json
+dist/urban-platform-infra.spdx.json
 dist/SHA256SUMS
 ```
 
@@ -32,7 +32,7 @@ After downloading release evidence:
 
 ```bash
 sha256sum -c dist/SHA256SUMS
-gh attestation verify dist/city-intersection-platform-0.1.0.tgz --repo OWNER/REPO
+gh attestation verify dist/urban-platform-infra-0.1.0.tgz --repo OWNER/REPO
 ```
 
 For private repositories, GitHub artifact attestations require a plan that supports private/internal attestations. If that is not enabled yet, keep checksums and SBOMs as required release artifacts and enable attestations before regulated production use.

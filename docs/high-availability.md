@@ -29,9 +29,9 @@ Before production, choose storage classes and backup policies in `values.yaml`.
 
 ```bash
 kubectl get nodes -o wide
-kubectl -n city-intersection get pod -o wide
-kubectl -n city-intersection get pdb,hpa
-kubectl -n city-intersection get clusters.postgresql.cnpg.io
+kubectl -n urban-platform get pod -o wide
+kubectl -n urban-platform get pdb,hpa
+kubectl -n urban-platform get clusters.postgresql.cnpg.io
 ```
 
 Test VIP failover by stopping HAProxy or Keepalived on the current master and confirming the VIP moves to another node.

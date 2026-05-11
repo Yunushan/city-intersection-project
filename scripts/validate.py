@@ -22,7 +22,7 @@ REQUIRED = [
     '.github/workflows/release.yml', '.github/dependabot.yml', '.pre-commit-config.yaml',
     'requirements-ci.txt',
     '.sops.yaml.example', 'ansible/playbooks/preflight.yml',
-    'helm/city-intersection-platform/Chart.yaml', 'helm/city-intersection-platform/values.yaml',
+    'helm/urban-platform-infra/Chart.yaml', 'helm/urban-platform-infra/values.yaml',
     'config/services.catalog.yaml', 'config/cluster-profiles.yaml',
     'config/deployment-topologies.yaml', 'config/secrets.contract.yaml',
     'config/supply-chain-policy.yaml', 'config/image-policy.yaml', 'config/slo.yaml',
@@ -30,10 +30,10 @@ REQUIRED = [
     'tests/policy/basic_policy.py', 'docs/bootstrap-safety.md', 'docs/secrets-management.md',
     'docs/supply-chain.md', 'docs/image-governance.md', 'docs/observability-slo.md',
     'docs/deployment-topologies.md', 'docs/runbooks.md', 'docs/release-guide.md',
-    'helm/city-intersection-platform/topologies/single-node.yaml',
-    'helm/city-intersection-platform/topologies/two-node-lab.yaml',
-    'helm/city-intersection-platform/topologies/three-node-ha.yaml',
-    'helm/city-intersection-platform/topologies/multi-node-ha.yaml',
+    'helm/urban-platform-infra/topologies/single-node.yaml',
+    'helm/urban-platform-infra/topologies/two-node-lab.yaml',
+    'helm/urban-platform-infra/topologies/three-node-ha.yaml',
+    'helm/urban-platform-infra/topologies/multi-node-ha.yaml',
     'inventories/topologies/single-node/hosts.yml',
     'inventories/topologies/two-node-lab/hosts.yml',
     'inventories/topologies/three-node-ha/hosts.yml',
@@ -123,7 +123,7 @@ for path in [ROOT / '.sops.yaml.example']:
     except Exception as exc:
         errors.append(f'YAML error in {relative_name(path)}: {exc}')
 
-values = yaml.safe_load((ROOT / 'helm/city-intersection-platform/values.yaml').read_text())
+values = yaml.safe_load((ROOT / 'helm/urban-platform-infra/values.yaml').read_text())
 if values['global']['cluster']['engine'] != 'rke2':
     errors.append('Default engine must be rke2')
 if values['global']['cluster']['nodes'] != 3:
@@ -216,7 +216,7 @@ for gitlab_token in [
     'alpine/helm:3.19.0',
     'release-evidence:',
     'SHA256SUMS',
-    'city-intersection-platform.spdx.json',
+    'urban-platform-infra.spdx.json',
 ]:
     if gitlab_token not in gitlab_ci_text:
         errors.append(f'GitLab CI missing release integrity control: {gitlab_token}')
@@ -335,7 +335,7 @@ for objective_name, objective in objectives.items():
         errors.append(f'SLO objective {objective_name} target must be a percentage between 0 and 100')
 if slo_contract.get('owner') != 'platform':
     errors.append('SLO contract owner must be platform')
-monitoring_rules_text = (ROOT / 'helm/city-intersection-platform/templates/monitoring-rules.yaml').read_text(encoding='utf-8')
+monitoring_rules_text = (ROOT / 'helm/urban-platform-infra/templates/monitoring-rules.yaml').read_text(encoding='utf-8')
 for alert_name in [
     'CityIntersectionDeploymentReplicasUnavailable',
     'CityIntersectionStatefulSetReplicasUnavailable',
@@ -348,7 +348,7 @@ for alert_name in [
 for required_monitoring_token in ['PrometheusRule', 'runbook_url', 'release:']:
     if required_monitoring_token not in monitoring_rules_text:
         errors.append(f'Monitoring rules missing required token: {required_monitoring_token}')
-monitoring_services_text = (ROOT / 'helm/city-intersection-platform/templates/monitoring-servicemonitors.yaml').read_text(encoding='utf-8')
+monitoring_services_text = (ROOT / 'helm/urban-platform-infra/templates/monitoring-servicemonitors.yaml').read_text(encoding='utf-8')
 if 'ServiceMonitor' not in monitoring_services_text or 'namespaceSelector' not in monitoring_services_text:
     errors.append('Monitoring ServiceMonitor template must define namespace-scoped generic targets')
 status_script = (ROOT / 'scripts/health/status.sh').read_text(encoding='utf-8')

@@ -10,7 +10,7 @@ metadata:
   labels:
     {{- include "cip.labels" $ | nindent 4 }}
     app.kubernetes.io/name: {{ $name }}
-    city-intersection.io/database-engine: {{ $db.engine | quote }}
+    urban-platform.io/database-engine: {{ $db.engine | quote }}
 spec:
   instances: {{ include "cip.replicaCount" (list $ ($db.instances | default $.Values.databases.defaultInstances)) }}
   imageName: {{ include "cip.image" (list $ $db.image) | quote }}

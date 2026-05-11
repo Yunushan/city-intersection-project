@@ -12,5 +12,5 @@ For real Docker HA, initialize Docker Swarm and use `docker stack deploy`:
 
 ```bash
 docker swarm init
-REGISTRY_PREFIX=registry.example.com/city-intersection docker stack deploy -c docker-compose.ha.yml city-intersection
+REGISTRY_PREFIX=registry.example.com/urban-platform docker stack deploy -c docker-compose.ha.yml urban-platform
 ```

@@ -1,15 +1,15 @@
-# city-intersection-platform Helm chart
+# urban-platform-infra Helm chart
 
-This chart renders the default HA application stack for `city-intersection-project`.
+This chart renders the default HA application stack for `urban-platform-infra`.
 
 ## Common changes
 
 ```bash
 # Render only
-helm template city-intersection-project . -n city-intersection -f values.yaml
+helm template urban-platform-infra . -n urban-platform -f values.yaml
 
 # Install/upgrade
-helm upgrade --install city-intersection-project . -n city-intersection --create-namespace -f values.yaml
+helm upgrade --install urban-platform-infra . -n urban-platform --create-namespace -f values.yaml
 ```
 
 Switches are handled in `values.yaml`:

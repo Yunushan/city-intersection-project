@@ -11,7 +11,7 @@ topologies:
       - rke2
       - k3s
       - docker
-    helmValues: helm/city-intersection-platform/topologies/single-node.yaml
+    helmValues: helm/urban-platform-infra/topologies/single-node.yaml
     inventory: inventories/topologies/single-node/hosts.yml
     notes:
       - No quorum or host-level high availability.
@@ -27,7 +27,7 @@ topologies:
     recommendedEngines:
       - rke2
       - k3s
-    helmValues: helm/city-intersection-platform/topologies/two-node-lab.yaml
+    helmValues: helm/urban-platform-infra/topologies/two-node-lab.yaml
     inventory: inventories/topologies/two-node-lab/hosts.yml
     notes:
       - Prefer one control-plane server and one worker/agent.
@@ -45,7 +45,7 @@ topologies:
       - rke2
       - k3s
       - microk8s
-    helmValues: helm/city-intersection-platform/topologies/three-node-ha.yaml
+    helmValues: helm/urban-platform-infra/topologies/three-node-ha.yaml
     inventory: inventories/topologies/three-node-ha/hosts.yml
     notes:
       - Best-supported default for RKE2 embedded-etcd HA.
@@ -61,7 +61,7 @@ topologies:
     recommendedEngines:
       - rke2
       - k3s
-    helmValues: helm/city-intersection-platform/topologies/multi-node-ha.yaml
+    helmValues: helm/urban-platform-infra/topologies/multi-node-ha.yaml
     inventory: inventories/topologies/multi-node-ha/hosts.yml
     notes:
       - Keep control-plane count odd, normally 3 or 5.

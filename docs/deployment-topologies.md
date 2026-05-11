@@ -18,10 +18,10 @@ The contract is stored in `config/deployment-topologies.yaml`.
 Render or deploy with a topology override:
 
 ```bash
-helm template city-intersection-project helm/city-intersection-platform \
-  --namespace city-intersection \
-  -f helm/city-intersection-platform/values.yaml \
-  -f helm/city-intersection-platform/topologies/single-node.yaml
+helm template urban-platform-infra helm/urban-platform-infra \
+  --namespace urban-platform \
+  -f helm/urban-platform-infra/values.yaml \
+  -f helm/urban-platform-infra/topologies/single-node.yaml
 ```
 
 For production, use `three-node-ha` or `multi-node-ha`, then add a private production override for real DNS, TLS, registry, storage classes, and digest-pinned images.

@@ -14,12 +14,12 @@ def write_yaml(path, data):
         yaml.safe_dump(data, f, sort_keys=False, default_flow_style=False, width=120)
 
 def main():
-    parser = argparse.ArgumentParser(description='Switch city-intersection-project defaults without editing templates.')
+    parser = argparse.ArgumentParser(description='Switch urban-platform-infra defaults without editing templates.')
     parser.add_argument('--engine', choices=['rke2','k3s','microk8s','docker','raw'])
     parser.add_argument('--webserver', choices=['nginx','apache-httpd','apache-tomcat','traefik'])
     parser.add_argument('--database')
     parser.add_argument('--observability', choices=['elasticsearch','loki','opensearch','graylog','clickhouse','grafana'])
-    parser.add_argument('--values', default=str(ROOT / 'helm/city-intersection-platform/values.yaml'))
+    parser.add_argument('--values', default=str(ROOT / 'helm/urban-platform-infra/values.yaml'))
     args = parser.parse_args()
 
     values_path = Path(args.values)

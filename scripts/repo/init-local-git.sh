@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -euo pipefail
-PROJECT_NAME="${PROJECT_NAME:-city-intersection-project}"
+PROJECT_NAME="${PROJECT_NAME:-urban-platform-infra}"
 
 git init
 if ! git branch --show-current >/dev/null 2>&1; then

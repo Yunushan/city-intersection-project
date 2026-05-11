@@ -44,21 +44,21 @@ tasks:
   package-chart:
     cmds:
       - mkdir -p dist
-      - helm dependency build helm/city-intersection-platform
-      - helm lint helm/city-intersection-platform
-      - helm package helm/city-intersection-platform -d dist
+      - helm dependency build helm/urban-platform-infra
+      - helm lint helm/urban-platform-infra
+      - helm package helm/urban-platform-infra -d dist
   release-evidence:
     deps:
       - package-chart
     cmds:
-      - helm template city-intersection-project helm/city-intersection-platform --namespace city-intersection -f helm/city-intersection-platform/values.yaml > dist/rendered.yaml
-      - python3 scripts/release/generate_sbom.py --chart helm/city-intersection-platform --dist dist --rendered dist/rendered.yaml --sbom dist/city-intersection-platform.spdx.json --checksums dist/SHA256SUMS
+      - helm template urban-platform-infra helm/urban-platform-infra --namespace urban-platform -f helm/urban-platform-infra/values.yaml > dist/rendered.yaml
+      - python3 scripts/release/generate_sbom.py --chart helm/urban-platform-infra --dist dist --rendered dist/rendered.yaml --sbom dist/urban-platform-infra.spdx.json --checksums dist/SHA256SUMS
   deploy:
     vars:
       TOPOLOGY: '{{.TOPOLOGY | default "three-node-ha"}}'
     cmds:
-      - helm upgrade --install city-intersection-project helm/city-intersection-platform --namespace city-intersection --create-namespace -f helm/city-intersection-platform/values.yaml -f helm/city-intersection-platform/topologies/{{.TOPOLOGY}}.yaml
+      - helm upgrade --install urban-platform-infra helm/urban-platform-infra --namespace urban-platform --create-namespace -f helm/urban-platform-infra/values.yaml -f helm/urban-platform-infra/topologies/{{.TOPOLOGY}}.yaml
   observability-status:
     cmds:
-      - kubectl -n city-intersection get prometheusrules.monitoring.coreos.com,servicemonitors.monitoring.coreos.com 2>/dev/null || true
+      - kubectl -n urban-platform get prometheusrules.monitoring.coreos.com,servicemonitors.monitoring.coreos.com 2>/dev/null || true
       - kubectl -n observability get pods,svc 2>/dev/null || true

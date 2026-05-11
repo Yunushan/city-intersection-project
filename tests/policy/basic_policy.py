@@ -88,9 +88,9 @@ for doc in yaml.safe_load_all(path.read_text()):
             errors.append(f'{kind}/{name}: replicas should be >= 2 for HA')
 
 expected_network_policies = {
-    'city-intersection-default-deny',
-    'city-intersection-same-namespace',
-    'city-intersection-dns-egress',
+    'urban-platform-default-deny',
+    'urban-platform-same-namespace',
+    'urban-platform-dns-egress',
 }
 missing_network_policies = sorted(expected_network_policies - network_policies)
 if missing_network_policies:
