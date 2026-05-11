@@ -1,16 +1,22 @@
 ---
 - name: Restart rke2-server
-  ansible.builtin.service:
+  ansible.builtin.systemd_service:
     name: rke2-server
     state: restarted
+  async: "{{ rke2_service_restart_async_timeout | default(1200) }}"
+  poll: 0
+  changed_when: true
   when:
     - not ansible_check_mode
     - inventory_hostname in groups['rke2_servers']
 
 - name: Restart rke2-agent
-  ansible.builtin.service:
+  ansible.builtin.systemd_service:
     name: rke2-agent
     state: restarted
+  async: "{{ rke2_service_restart_async_timeout | default(1200) }}"
+  poll: 0
+  changed_when: true
   when:
     - not ansible_check_mode
     - inventory_hostname in groups.get('rke2_agents', [])

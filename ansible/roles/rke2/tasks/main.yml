@@ -16,6 +16,14 @@
     state: directory
     mode: '0755'
 
+- name: Set RKE2 service name
+  ansible.builtin.set_fact:
+    rke2_service_name: "{{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
+
+- name: Gather service facts before RKE2 changes
+  ansible.builtin.service_facts:
+  when: not ansible_check_mode
+
 - name: Render RKE2 server config
   ansible.builtin.template:
     src: config.yaml.j2
@@ -23,7 +31,7 @@
     mode: '0600'
     backup: true
   diff: false
-  notify: Restart rke2-server
+  register: rke2_server_config
   when: inventory_hostname in groups['rke2_servers']
 
 - name: Render RKE2 agent config
@@ -33,7 +41,7 @@
     mode: '0600'
     backup: true
   diff: false
-  notify: Restart rke2-agent
+  register: rke2_agent_config
   when: inventory_hostname in groups.get('rke2_agents', [])
 
 - name: Install RKE2 server
@@ -93,14 +101,32 @@
     - not ansible_check_mode
     - rke2_firewalld_state.stdout | default('') == 'active'
 
+- name: Set RKE2 service facts
+  ansible.builtin.set_fact:
+    rke2_config_changed: >-
+      {{
+        (
+          inventory_hostname in groups['rke2_servers'] and
+          rke2_server_config.changed | default(false)
+        ) or
+        (
+          inventory_hostname in groups.get('rke2_agents', []) and
+          rke2_agent_config.changed | default(false)
+        )
+      }}
+    rke2_service_existed_before_config: >-
+      {{ ((ansible_facts.services | default({}))[rke2_service_name ~ '.service']) is defined }}
+
 - name: Enable RKE2 service
   ansible.builtin.service:
-    name: "{{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
+    name: "{{ rke2_service_name }}"
     enabled: true
   when: not ansible_check_mode
 
-- name: Start RKE2 service in background
-  ansible.builtin.command: "systemctl start {{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
+- name: Start or restart RKE2 service in background
+  ansible.builtin.systemd_service:
+    name: "{{ rke2_service_name }}"
+    state: "{{ 'restarted' if (rke2_service_existed_before_config | bool and rke2_config_changed | bool) else 'started' }}"
   async: "{{ rke2_service_start_async_timeout | default(1200) }}"
   poll: 0
   changed_when: true
@@ -115,13 +141,13 @@
         timeout: "{{ rke2_local_registration_timeout | default(1200) }}"
   rescue:
     - name: Read RKE2 service status after registration wait failure
-      ansible.builtin.command: "systemctl status {{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }} --no-pager -l"
+      ansible.builtin.command: "systemctl status {{ rke2_service_name }} --no-pager -l"
       register: rke2_service_status
       changed_when: false
       failed_when: false
 
     - name: Read recent RKE2 journal after registration wait failure
-      ansible.builtin.command: "journalctl -u {{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }} --no-pager -n 160"
+      ansible.builtin.command: "journalctl -u {{ rke2_service_name }} --no-pager -n 160"
       register: rke2_service_journal
       changed_when: false
       failed_when: false
