@@ -11,12 +11,14 @@ TOPOLOGY ?= three-node-ha
 TOPOLOGY_VALUES ?= helm/urban-platform-infra/topologies/$(TOPOLOGY).yaml
 INVENTORY ?= inventories/$(ENV)/hosts.yml
 ANSIBLE_PLAYBOOK ?= ansible-playbook
+ANSIBLE_GALAXY ?= ansible-galaxy
 ANSIBLE_CONFIG ?= ansible/ansible.cfg
 ANSIBLE_ARGS ?=
 ANSIBLE_DIFF ?= --diff
+ANSIBLE_COLLECTIONS_STAMP ?= .ansible/collections/.requirements.stamp
 CONFIRM_PROD ?= false
 
-.PHONY: help validate image-policy lint configure preflight bootstrap-check bootstrap install-cluster-check install-cluster install-operators deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
+.PHONY: help validate image-policy lint configure ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster install-operators deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
 
 define require_prod_confirmation
 	@if [ "$(ENV)" = "prod" ] && [ "$(CONFIRM_PROD)" != "true" ]; then \
@@ -42,20 +44,27 @@ lint: ## Run local static checks that mirror the CI static gate.
 configure: ## Update selected runtime defaults in Helm values.
 	python3 scripts/configure.py --engine $(ENGINE) --webserver $(WEB) --database $(DB) --observability $(OBS) --values $(VALUES)
 
-preflight: ## Validate inventory and target readiness before bootstrap/install.
+$(ANSIBLE_COLLECTIONS_STAMP): ansible/requirements.yml
+	mkdir -p .ansible/collections
+	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_GALAXY) collection install -r ansible/requirements.yml --force
+	touch $(ANSIBLE_COLLECTIONS_STAMP)
+
+ansible-collections: $(ANSIBLE_COLLECTIONS_STAMP) ## Install repo-pinned Ansible collections.
+
+preflight: ansible-collections ## Validate inventory and target readiness before bootstrap/install.
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/preflight.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
-bootstrap-check: ## Dry-run bootstrap with Ansible check mode and diff.
+bootstrap-check: ansible-collections ## Dry-run bootstrap with Ansible check mode and diff.
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check $(ANSIBLE_DIFF) $(ANSIBLE_ARGS)
 
-bootstrap: ## Bootstrap nodes with common packages, Chrony, HAProxy, Keepalived.
+bootstrap: ansible-collections ## Bootstrap nodes with common packages, Chrony, HAProxy, Keepalived.
 	$(call require_prod_confirmation)
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/bootstrap.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
-install-cluster-check: ## Dry-run cluster install with Ansible check mode and diff.
+install-cluster-check: ansible-collections ## Dry-run cluster install with Ansible check mode and diff.
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) --check $(ANSIBLE_DIFF) $(ANSIBLE_ARGS)
 
-install-cluster: ## Install selected cluster engine: rke2, k3s, microk8s, docker, or raw.
+install-cluster: ansible-collections ## Install selected cluster engine: rke2, k3s, microk8s, docker, or raw.
 	$(call require_prod_confirmation)
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_PLAYBOOK) -i $(INVENTORY) ansible/playbooks/install-cluster.yml -e cluster_engine=$(ENGINE) -e deployment_environment=$(ENV) $(ANSIBLE_ARGS)
 
@@ -100,4 +109,4 @@ docker-status: ## Show Docker fallback profile status.
 	docker compose -f compose/docker-compose.ha.yml ps
 
 clean: ## Remove generated local files.
-	rm -rf rendered.yaml reports dist
+	rm -rf rendered.yaml reports dist $(ANSIBLE_COLLECTIONS_STAMP)
