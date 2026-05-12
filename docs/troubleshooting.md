@@ -18,6 +18,12 @@ ss -lntp | grep -E '6443|7443|9345|9346'
 curl -k https://<vip>:7443/readyz
 ```
 
+## RKE2 registration wait does not finish
+
+The first RKE2 server must open local port `9345` before the VIP can forward registration traffic. The install role now bootstraps the first server with `cluster-init: true` and probes the local listener in a retry loop that fails with RKE2 service, journal, and socket diagnostics.
+
+If HAProxy is running but reports `backend rke2_registration_servers has no server available`, check the RKE2 service diagnostics from the failed play output first. HAProxy will stay down until at least one server listens on `9345`.
+
 ## Images cannot be pulled
 
 Set `global.imageRegistry`, configure `imagePullSecrets`, or preload images:

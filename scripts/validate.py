@@ -274,6 +274,25 @@ for preflight_token in [
     if preflight_token not in preflight_text:
         errors.append(f'Ansible preflight missing RedHat-family major 10 compatibility token: {preflight_token}')
 
+rke2_server_config_template = (ROOT / 'ansible/roles/rke2/templates/config.yaml.j2').read_text(encoding='utf-8')
+for rke2_config_token in [
+    'cluster-init: true',
+    'server: "https://{{ cluster_vip }}:{{ rke2_registration_vip_port | default(9346) }}"',
+]:
+    if rke2_config_token not in rke2_server_config_template:
+        errors.append(f'RKE2 server config template missing HA bootstrap token: {rke2_config_token}')
+
+rke2_role_tasks_text = (ROOT / 'ansible/roles/rke2/tasks/main.yml').read_text(encoding='utf-8')
+for rke2_wait_token in [
+    'systemctl is-failed --quiet "{{ rke2_service_name }}"',
+    'rke2_registration_probe',
+    'failed_when: rke2_registration_probe.rc == 2',
+    'registration_waiting',
+    'ss -ltnH',
+]:
+    if rke2_wait_token not in rke2_role_tasks_text:
+        errors.append(f'RKE2 role missing registration wait diagnostic token: {rke2_wait_token}')
+
 makefile_text = (ROOT / 'Makefile').read_text(encoding='utf-8')
 if 'CONFIRM_PROD' not in makefile_text:
     errors.append('Makefile mutating Ansible targets must require production confirmation')

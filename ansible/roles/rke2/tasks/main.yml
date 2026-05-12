@@ -135,10 +135,26 @@
 - name: Wait for local RKE2 registration endpoint
   block:
     - name: Wait for local RKE2 registration endpoint
-      ansible.builtin.wait_for:
-        host: "{{ node_ip | default(ansible_host) }}"
-        port: 9345
-        timeout: "{{ rke2_local_registration_timeout | default(1200) }}"
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if systemctl is-failed --quiet "{{ rke2_service_name }}"; then
+          echo "service_failed"
+          exit 2
+        fi
+        if ss -ltnH | awk '{print $4}' | grep -Eq '(^|:|\])9345$'; then
+          echo "registration_ready"
+          exit 0
+        fi
+        echo "registration_waiting"
+        exit 1
+      args:
+        executable: /bin/bash
+      register: rke2_registration_probe
+      changed_when: false
+      failed_when: rke2_registration_probe.rc == 2
+      retries: "{{ rke2_local_registration_retries | default(90) }}"
+      delay: "{{ rke2_local_registration_delay | default(10) }}"
+      until: rke2_registration_probe.rc == 0
   rescue:
     - name: Read RKE2 service status after registration wait failure
       ansible.builtin.command: "systemctl status {{ rke2_service_name }} --no-pager -l"
