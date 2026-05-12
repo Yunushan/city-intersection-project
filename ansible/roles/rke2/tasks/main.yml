@@ -184,6 +184,82 @@
     - inventory_hostname in groups['rke2_servers']
     - not ansible_check_mode
 
+- name: Detect corrupt RKE2 embedded etcd snapshot state
+  ansible.builtin.set_fact:
+    rke2_corrupt_etcd_snapshot_detected: >-
+      {{
+        ((rke2_initial_startup_state.stdout | default('')) |
+        regex_search('failed to recover v3 backend from snapshot|failed to find database snapshot file|snapshot file doesn'))
+        is not none
+      }}
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
+
+- name: Recover corrupt RKE2 embedded etcd snapshot state
+  block:
+    - name: Stop RKE2 before corrupt datastore archive
+      ansible.builtin.systemd_service:
+        name: "{{ rke2_service_name }}"
+        state: stopped
+      failed_when: false
+
+    - name: Archive corrupt RKE2 datastore before retry
+      ansible.builtin.shell: |
+        set -euo pipefail
+        if [ -d /var/lib/rancher/rke2/server/db ]; then
+          backup="/var/lib/rancher/rke2/server/db.corrupt.$(date -u +%Y%m%dT%H%M%SZ)"
+          mv /var/lib/rancher/rke2/server/db "${backup}"
+          echo "${backup}"
+        fi
+      args:
+        executable: /bin/bash
+      register: rke2_corrupt_datastore_archive
+      changed_when: rke2_corrupt_datastore_archive.stdout | length > 0
+
+    - name: Show archived corrupt RKE2 datastore path
+      ansible.builtin.debug:
+        msg: "{{ rke2_corrupt_datastore_archive.stdout_lines | default([]) }}"
+      when: rke2_corrupt_datastore_archive.stdout | default('') | length > 0
+
+    - name: Reset failed RKE2 service state
+      ansible.builtin.command: systemctl reset-failed "{{ rke2_service_name }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Start RKE2 after corrupt datastore archive
+      ansible.builtin.systemd_service:
+        name: "{{ rke2_service_name }}"
+        state: started
+      async: "{{ rke2_service_start_async_timeout | default(1200) }}"
+      poll: 0
+      changed_when: true
+
+    - name: Give recovered RKE2 service an initial startup window
+      ansible.builtin.pause:
+        seconds: "{{ rke2_initial_startup_delay | default(20) }}"
+
+    - name: Read recovered RKE2 startup state
+      ansible.builtin.shell: |
+        set -euo pipefail
+        echo "service_state=$(systemctl show "{{ rke2_service_name }}" --property=ActiveState --property=SubState --property=Result --property=ExecMainStatus --value | paste -sd ' ' -)"
+        echo "listeners=$(ss -ltnH | awk '{print $4}' | grep -E '(:|\\])((6443)|(9345)|(2379)|(2380)|(10250))$' || true)"
+        journalctl -u "{{ rke2_service_name }}" --no-pager -n "{{ rke2_initial_journal_lines | default(40) }}"
+      args:
+        executable: /bin/bash
+      register: rke2_recovered_startup_state
+      changed_when: false
+      failed_when: false
+
+    - name: Show recovered RKE2 startup state
+      ansible.builtin.debug:
+        msg: "{{ rke2_recovered_startup_state.stdout_lines | default([]) }}"
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
+    - rke2_auto_recover_corrupt_etcd_snapshot | default(true) | bool
+    - rke2_corrupt_etcd_snapshot_detected | default(false) | bool
+
 - name: Wait for local RKE2 registration endpoint
   block:
     - name: Wait for local RKE2 registration endpoint

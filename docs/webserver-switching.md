@@ -1,6 +1,6 @@
 # Webserver Switching
 
-Default webserver is nginx `1.18`.
+Default webserver is nginx `1.30.0`.
 
 ```bash
 python3 scripts/configure.py --webserver nginx

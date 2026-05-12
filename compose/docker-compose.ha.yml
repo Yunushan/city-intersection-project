@@ -427,7 +427,7 @@ services:
     ports:
     - 5018:5018
   nginx:
-    image: nginx:1.18
+    image: nginx:1.30.0
     restart: unless-stopped
     ports:
     - 80:80
@@ -437,7 +437,7 @@ services:
     deploy:
       replicas: 3
   zookeeper:
-    image: confluentinc/cp-zookeeper:7.5.0
+    image: confluentinc/cp-zookeeper:7.9.6
     restart: unless-stopped
     environment:
     - ZOOKEEPER_CLIENT_PORT=2181
@@ -447,7 +447,7 @@ services:
     deploy:
       replicas: 1
   kafka:
-    image: confluentinc/cp-kafka:7.5.0
+    image: confluentinc/cp-kafka:7.9.6
     restart: unless-stopped
     depends_on:
     - zookeeper
@@ -475,14 +475,14 @@ services:
     networks:
     - urban-platform
   redis:
-    image: redis:6.2
+    image: redis:8.6.2
     restart: unless-stopped
     ports:
     - 6379:6379
     networks:
     - urban-platform
   elasticsearch:
-    image: elasticsearch:8.12.0
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.4.0
     restart: unless-stopped
     ports:
     - 9200:9200
@@ -495,7 +495,7 @@ services:
     networks:
     - urban-platform
   kibana:
-    image: kibana:8.12.0
+    image: docker.elastic.co/kibana/kibana:9.4.0
     restart: unless-stopped
     ports:
     - 5601:5601
@@ -506,21 +506,21 @@ services:
     networks:
     - urban-platform
   logstash:
-    image: logstash:8.12.0
+    image: docker.elastic.co/logstash/logstash:9.4.0
     restart: unless-stopped
     ports:
     - 5044:5044
     networks:
     - urban-platform
   zabbix-agent2:
-    image: zabbix/zabbix-agent2:ubuntu-7.0.25
+    image: zabbix/zabbix-agent2:ubuntu-7.4.10
     restart: unless-stopped
     ports:
     - 10050:10050
     networks:
     - urban-platform
   db-01-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5451:5432
@@ -529,11 +529,11 @@ services:
     - POSTGRES_USER=app_db_01
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-01-postgres-data:/var/lib/postgresql/data
+    - db-01-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-02-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5452:5432
@@ -542,11 +542,11 @@ services:
     - POSTGRES_USER=app_db_02
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-02-postgres-data:/var/lib/postgresql/data
+    - db-02-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-03-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5439:5432
@@ -555,11 +555,11 @@ services:
     - POSTGRES_USER=app_db_03
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-03-postgres-data:/var/lib/postgresql/data
+    - db-03-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-04-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5433:5432
@@ -568,11 +568,11 @@ services:
     - POSTGRES_USER=app_db_04
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-04-postgres-data:/var/lib/postgresql/data
+    - db-04-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-05-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5450:5432
@@ -581,11 +581,11 @@ services:
     - POSTGRES_USER=app_db_05
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-05-postgres-data:/var/lib/postgresql/data
+    - db-05-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-06-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5435:5432
@@ -594,11 +594,11 @@ services:
     - POSTGRES_USER=app_db_06
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-06-postgres-data:/var/lib/postgresql/data
+    - db-06-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-07-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5446:5432
@@ -607,11 +607,11 @@ services:
     - POSTGRES_USER=app_db_07
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-07-postgres-data:/var/lib/postgresql/data
+    - db-07-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-08-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5432:5432
@@ -620,11 +620,11 @@ services:
     - POSTGRES_USER=app_db_08
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-08-postgres-data:/var/lib/postgresql/data
+    - db-08-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-09-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5434:5432
@@ -633,11 +633,11 @@ services:
     - POSTGRES_USER=app_db_09
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-09-postgres-data:/var/lib/postgresql/data
+    - db-09-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-10-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5441:5432
@@ -646,11 +646,11 @@ services:
     - POSTGRES_USER=app_db_10
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-10-postgres-data:/var/lib/postgresql/data
+    - db-10-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-11-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5437:5432
@@ -659,11 +659,11 @@ services:
     - POSTGRES_USER=app_db_11
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-11-postgres-data:/var/lib/postgresql/data
+    - db-11-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-12-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5449:5432
@@ -672,11 +672,11 @@ services:
     - POSTGRES_USER=app_db_12
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-12-postgres-data:/var/lib/postgresql/data
+    - db-12-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-13-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5444:5432
@@ -685,11 +685,11 @@ services:
     - POSTGRES_USER=app_db_13
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-13-postgres-data:/var/lib/postgresql/data
+    - db-13-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-14-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5436:5432
@@ -698,11 +698,11 @@ services:
     - POSTGRES_USER=app_db_14
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-14-postgres-data:/var/lib/postgresql/data
+    - db-14-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-15-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5440:5432
@@ -711,11 +711,11 @@ services:
     - POSTGRES_USER=app_db_15
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-15-postgres-data:/var/lib/postgresql/data
+    - db-15-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-16-postgres:
-    image: postgres:16.2
+    image: postgres:18.3
     restart: unless-stopped
     ports:
     - 5443:5432
@@ -724,11 +724,11 @@ services:
     - POSTGRES_USER=app_db_16
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-16-postgres-data:/var/lib/postgresql/data
+    - db-16-postgres-data:/var/lib/postgresql
     networks:
     - urban-platform
   db-17-postgis:
-    image: postgis/postgis:16-3.4
+    image: postgis/postgis:18-3.6
     restart: unless-stopped
     ports:
     - 5438:5432
@@ -737,11 +737,11 @@ services:
     - POSTGRES_USER=app_db_17
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - db-17-postgis-data:/var/lib/postgresql/data
+    - db-17-postgis-data:/var/lib/postgresql
     networks:
     - urban-platform
   timescaledb:
-    image: timescale/timescaledb:2.26.4-pg16
+    image: timescale/timescaledb:2.26.4-pg18
     restart: unless-stopped
     ports:
     - 5448:5432
@@ -750,7 +750,7 @@ services:
     - POSTGRES_USER=timeseries
     - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-change-me}
     volumes:
-    - timescaledb-data:/var/lib/postgresql/data
+    - timescaledb-data:/var/lib/postgresql
     networks:
     - urban-platform
 networks:

@@ -15,7 +15,7 @@ make status
 make observability-status
 ```
 
-Install kube-prometheus-stack with `make install-operators`, then enable `monitoring.enabled=true` in a production override file when the Prometheus Operator CRDs are present.
+Install ECK, kube-prometheus-stack/Grafana, and OpenTelemetry Collector with `make install-operators`, then enable `monitoring.enabled=true` in a production override file when the Prometheus Operator CRDs are present.
 
 Service objectives live in `config/slo.yaml`. Alert runbooks live in `docs/runbooks.md`.
 
@@ -35,7 +35,7 @@ Recommended before production:
 
 ## Logs
 
-Default pipeline: Logstash -> Elasticsearch -> Kibana. Optional pipelines are configured in `config/observability.yaml`.
+Default pipeline: OpenTelemetry Collector -> Logstash -> Elasticsearch -> Kibana, with Prometheus/Grafana for metrics and dashboards. Optional pipelines are configured in `config/observability.yaml`.
 
 ## Monthly Review
 

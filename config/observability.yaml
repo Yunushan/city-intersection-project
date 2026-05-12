@@ -1,4 +1,12 @@
 default: elasticsearch
+defaultStack: elastic-eck-prometheus-grafana-opentelemetry
+stack:
+  logging: elasticsearch
+  search: elasticsearch
+  metrics: prometheus
+  dashboards: grafana
+  telemetry: opentelemetry
+  traces: opentelemetry
 retention:
   metrics: 30d
   logs: 30d
@@ -12,6 +20,14 @@ profiles:
   grafana:
     enabled: true
     purpose: dashboards
+  prometheus:
+    enabled: true
+    purpose: metrics/SLO alerting
+    provider: kube-prometheus-stack
+  opentelemetry:
+    enabled: true
+    purpose: metrics/logs/traces collection
+    mode: daemonset
   loki:
     enabled: false
     purpose: logs
@@ -19,7 +35,7 @@ profiles:
   elasticsearch:
     enabled: true
     purpose: search/log analytics
-    version: 8.12.0
+    version: 9.4.0
   opensearch:
     enabled: false
     purpose: search/log analytics
@@ -31,9 +47,12 @@ profiles:
     purpose: analytics/time-series/log warehouse
 pipelines:
   default:
+  - opentelemetry-collector
   - logstash
   - elasticsearch
   - kibana
+  - prometheus
+  - grafana
   loki:
   - promtail|alloy
   - loki

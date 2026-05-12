@@ -6,7 +6,7 @@ This repository is an infrastructure deployment project. It must not carry priva
 
 Image governance has four rules:
 
-1. Do not use mutable image tags such as `latest`, `latest-pg16`, or `*-latest`.
+1. Do not use mutable image tags such as `latest`, `latest-pg16`, `latest-pg17`, `latest-pg18`, or `*-latest`.
 2. Use explicit version tags in examples and development defaults.
 3. Use digest pins in production override files after images are promoted into an approved private registry.
 4. Keep image movement scripts pointed at the sanitized image catalog and never at private credentials or local kubeconfigs.
@@ -59,11 +59,13 @@ This validates:
 
 | Layer | Image |
 |---|---|
-| Kafka | `confluentinc/cp-kafka:7.5.0` |
-| ZooKeeper | `confluentinc/cp-zookeeper:7.5.0` |
+| Kafka | `confluentinc/cp-kafka:7.9.6` |
+| ZooKeeper | `confluentinc/cp-zookeeper:7.9.6` |
 | Kafka UI | `provectuslabs/kafka-ui:v0.7.2` |
-| TimescaleDB | `timescale/timescaledb:2.26.4-pg16` |
-| Zabbix agent | `zabbix/zabbix-agent2:ubuntu-7.0.25` |
+| TimescaleDB | `timescale/timescaledb:2.26.4-pg18` |
+| Zabbix agent | `zabbix/zabbix-agent2:ubuntu-7.4.10` |
+
+Kafka remains on the latest ZooKeeper-compatible Confluent Platform 7.9.x line. Moving to Confluent Platform 8.x requires a KRaft migration and removal of the ZooKeeper deployment from the chart and compose profiles.
 
 ## References
 

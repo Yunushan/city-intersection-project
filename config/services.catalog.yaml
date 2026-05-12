@@ -277,7 +277,7 @@ images:
   ports:
   - 5018
 - name: webserver-nginx
-  image: nginx:1.18
+  image: nginx:1.30.0
   category: webserver
   type: web
   ports:
@@ -285,7 +285,7 @@ images:
   - 443
   replicas: 3
 - name: kafka
-  image: confluentinc/cp-kafka:7.5.0
+  image: confluentinc/cp-kafka:7.9.6
   category: messaging
   type: stateful
   ports:
@@ -294,7 +294,7 @@ images:
   - 29094
   replicas: 3
 - name: zookeeper
-  image: confluentinc/cp-zookeeper:7.5.0
+  image: confluentinc/cp-zookeeper:7.9.6
   category: messaging
   type: stateful
   ports:
@@ -310,21 +310,21 @@ images:
   - 8080
   replicas: 2
 - name: redis
-  image: redis:6.2
+  image: redis:8.6.2
   category: cache
   type: stateful
   ports:
   - 6379
   replicas: 3
 - name: redis-sentinel
-  image: redis:6.2
+  image: redis:8.6.2
   category: cache
   type: stateful
   ports:
   - 26379
   replicas: 3
 - name: elasticsearch
-  image: elasticsearch:8.12.0
+  image: docker.elastic.co/elasticsearch/elasticsearch:9.4.0
   category: observability
   type: stateful
   ports:
@@ -332,14 +332,14 @@ images:
   - 9300
   replicas: 3
 - name: kibana
-  image: kibana:8.12.0
+  image: docker.elastic.co/kibana/kibana:9.4.0
   category: observability
   type: application
   ports:
   - 5601
   replicas: 2
 - name: logstash
-  image: logstash:8.12.0
+  image: docker.elastic.co/logstash/logstash:9.4.0
   category: observability
   type: application
   ports:
@@ -347,7 +347,7 @@ images:
   - 9600
   replicas: 2
 - name: zabbix-agent2
-  image: zabbix/zabbix-agent2:ubuntu-7.0.25
+  image: zabbix/zabbix-agent2:ubuntu-7.4.10
   category: monitoring
   type: daemon-or-deployment
   ports:
@@ -355,7 +355,7 @@ images:
   - 31999
   replicas: 3
 - name: db-01-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -363,7 +363,7 @@ images:
   - 5432
   replicas: 3
 - name: db-02-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -371,7 +371,7 @@ images:
   - 5432
   replicas: 3
 - name: db-03-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -379,7 +379,7 @@ images:
   - 5432
   replicas: 3
 - name: db-04-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -387,7 +387,7 @@ images:
   - 5432
   replicas: 3
 - name: db-05-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -395,7 +395,7 @@ images:
   - 5432
   replicas: 3
 - name: db-06-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -403,7 +403,7 @@ images:
   - 5432
   replicas: 3
 - name: db-07-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -411,7 +411,7 @@ images:
   - 5432
   replicas: 3
 - name: db-08-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -419,7 +419,7 @@ images:
   - 5432
   replicas: 3
 - name: db-09-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -427,7 +427,7 @@ images:
   - 5432
   replicas: 3
 - name: db-10-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -435,7 +435,7 @@ images:
   - 5432
   replicas: 3
 - name: db-11-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -443,7 +443,7 @@ images:
   - 5432
   replicas: 3
 - name: db-12-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -451,7 +451,7 @@ images:
   - 5432
   replicas: 3
 - name: db-13-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -459,7 +459,7 @@ images:
   - 5432
   replicas: 3
 - name: db-14-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -467,7 +467,7 @@ images:
   - 5432
   replicas: 3
 - name: db-15-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -475,7 +475,7 @@ images:
   - 5432
   replicas: 3
 - name: db-16-postgres
-  image: postgres:16.2
+  image: postgres:18.3
   category: database
   type: cloudnative-pg
   ports:
@@ -483,7 +483,7 @@ images:
   - 5432
   replicas: 3
 - name: db-17-postgis
-  image: postgis/postgis:16-3.4
+  image: postgis/postgis:18-3.6
   category: database
   type: cloudnative-pg
   ports:
@@ -491,7 +491,7 @@ images:
   - 5432
   replicas: 3
 - name: timescaledb
-  image: timescale/timescaledb:2.26.4-pg16
+  image: timescale/timescaledb:2.26.4-pg18
   category: database
   type: cloudnative-pg
   ports:

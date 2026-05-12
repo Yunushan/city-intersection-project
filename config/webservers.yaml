@@ -1,7 +1,7 @@
 default: nginx
 providers:
   nginx:
-    image: nginx:1.18
+    image: nginx:1.30.0
     ports:
     - 80
     - 443

@@ -12,6 +12,8 @@ repositories:
     url: https://cloudnative-pg.github.io/charts
   - name: prometheus-community
     url: https://prometheus-community.github.io/helm-charts
+  - name: open-telemetry
+    url: https://open-telemetry.github.io/opentelemetry-helm-charts
   - name: opensearch
     url: https://opensearch-project.github.io/helm-charts
   - name: bitnami
@@ -58,6 +60,26 @@ releases:
     version: 61.7.2
     installed: {{ env "INSTALL_PROMETHEUS" | default "true" }}
     createNamespace: true
+
+  - name: opentelemetry-collector
+    namespace: observability
+    chart: open-telemetry/opentelemetry-collector
+    version: 0.153.0
+    installed: {{ env "INSTALL_OPENTELEMETRY" | default "true" }}
+    createNamespace: true
+    values:
+      - mode: daemonset
+        image:
+          repository: ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-k8s
+        command:
+          name: otelcol-k8s
+        presets:
+          kubernetesAttributes:
+            enabled: true
+          kubeletMetrics:
+            enabled: true
+          kubernetesEvents:
+            enabled: true
 
   - name: loki
     namespace: observability

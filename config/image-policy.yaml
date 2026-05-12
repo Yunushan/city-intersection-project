@@ -4,11 +4,12 @@ policy:
     - latest
     - latest-pg16
     - latest-pg17
+    - latest-pg18
   requireDigestsForProduction: true
   defaultApplicationTag: 0.1.0
   approvedRuntimeImages:
     - repository: nginx
-      tag: '1.18'
+      tag: '1.30.0'
       owner: webserver
     - repository: httpd
       tag: '2.4'
@@ -20,37 +21,37 @@ policy:
       tag: v3.1
       owner: webserver
     - repository: confluentinc/cp-kafka
-      tag: 7.5.0
+      tag: 7.9.6
       owner: messaging
     - repository: confluentinc/cp-zookeeper
-      tag: 7.5.0
+      tag: 7.9.6
       owner: messaging
     - repository: provectuslabs/kafka-ui
       tag: v0.7.2
       owner: messaging
     - repository: redis
-      tag: '6.2'
+      tag: '8.6.2'
       owner: messaging
     - repository: postgres
-      tag: '16.2'
+      tag: '18.3'
       owner: database
     - repository: postgis/postgis
-      tag: 16-3.4
+      tag: 18-3.6
       owner: database
     - repository: timescale/timescaledb
-      tag: 2.26.4-pg16
+      tag: 2.26.4-pg18
       owner: database
-    - repository: elasticsearch
-      tag: 8.12.0
+    - repository: docker.elastic.co/elasticsearch/elasticsearch
+      tag: 9.4.0
       owner: observability
-    - repository: kibana
-      tag: 8.12.0
+    - repository: docker.elastic.co/kibana/kibana
+      tag: 9.4.0
       owner: observability
-    - repository: logstash
-      tag: 8.12.0
+    - repository: docker.elastic.co/logstash/logstash
+      tag: 9.4.0
       owner: observability
     - repository: zabbix/zabbix-agent2
-      tag: ubuntu-7.0.25
+      tag: ubuntu-7.4.10
       owner: monitoring
   productionRequirements:
     - Mirror third-party images into an approved private registry before production deployment.

@@ -46,6 +46,8 @@ def main():
         obs.setdefault('elasticsearch', {})['enabled'] = args.observability == 'elasticsearch'
         obs.setdefault('kibana', {})['enabled'] = args.observability == 'elasticsearch'
         obs.setdefault('grafana', {})['enabled'] = args.observability in ['grafana','loki','clickhouse','elasticsearch']
+        obs.setdefault('prometheus', {})['enabled'] = True
+        obs.setdefault('opentelemetry', {})['enabled'] = True
 
     write_yaml(values_path, values)
     print(f'Updated {values_path}')

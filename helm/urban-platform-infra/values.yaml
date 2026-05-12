@@ -120,7 +120,7 @@ webserver:
       displayName: nginx
       image:
         repository: nginx
-        tag: '1.18'
+        tag: '1.30.0'
       replicas: 3
       ports:
       - name: http
@@ -181,7 +181,7 @@ messaging:
     replicas: 3
     image:
       repository: confluentinc/cp-kafka
-      tag: 7.5.0
+      tag: 7.9.6
     storage:
       size: 50Gi
       className: ''
@@ -194,7 +194,7 @@ messaging:
       replicas: 3
       image:
         repository: confluentinc/cp-zookeeper
-        tag: 7.5.0
+        tag: 7.9.6
       storage:
         size: 10Gi
         className: ''
@@ -210,7 +210,7 @@ messaging:
     replicas: 3
     image:
       repository: redis
-      tag: '6.2'
+      tag: '8.6.2'
     sentinel:
       enabled: true
       replicas: 3
@@ -232,7 +232,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_01
       owner: app_db_01
       instances: 3
@@ -248,7 +248,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_02
       owner: app_db_02
       instances: 3
@@ -264,7 +264,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_03
       owner: app_db_03
       instances: 3
@@ -280,7 +280,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_04
       owner: app_db_04
       instances: 3
@@ -296,7 +296,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_05
       owner: app_db_05
       instances: 3
@@ -312,7 +312,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_06
       owner: app_db_06
       instances: 3
@@ -328,7 +328,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_07
       owner: app_db_07
       instances: 3
@@ -344,7 +344,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_08
       owner: app_db_08
       instances: 3
@@ -360,7 +360,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_09
       owner: app_db_09
       instances: 3
@@ -376,7 +376,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_10
       owner: app_db_10
       instances: 3
@@ -392,7 +392,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_11
       owner: app_db_11
       instances: 3
@@ -408,7 +408,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_12
       owner: app_db_12
       instances: 3
@@ -424,7 +424,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_13
       owner: app_db_13
       instances: 3
@@ -440,7 +440,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_14
       owner: app_db_14
       instances: 3
@@ -456,7 +456,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_15
       owner: app_db_15
       instances: 3
@@ -472,7 +472,7 @@ databases:
       engine: postgresql
       image:
         repository: postgres
-        tag: '16.2'
+        tag: '18.3'
       database: app_db_16
       owner: app_db_16
       instances: 3
@@ -488,7 +488,7 @@ databases:
       engine: postgis
       image:
         repository: postgis/postgis
-        tag: 16-3.4
+        tag: 18-3.6
       database: app_db_17
       owner: app_db_17
       instances: 3
@@ -504,7 +504,7 @@ databases:
       engine: timescaledb
       image:
         repository: timescale/timescaledb
-        tag: 2.26.4-pg16
+        tag: 2.26.4-pg18
       database: timeseries
       owner: timeseries
       instances: 3
@@ -517,18 +517,39 @@ databases:
         enabled: false
 observability:
   profile: elasticsearch
+  stack:
+    name: elastic-eck-prometheus-grafana-opentelemetry
+    logging: elasticsearch
+    search: elasticsearch
+    metrics: prometheus
+    dashboards: grafana
+    telemetry: opentelemetry
+    traces: opentelemetry
   grafana:
     enabled: true
+  prometheus:
+    enabled: true
+    provider: kube-prometheus-stack
+  opentelemetry:
+    enabled: true
+    mode: daemonset
+    collector:
+      name: opentelemetry-collector
+      namespace: observability
+    signals:
+      metrics: true
+      logs: true
+      traces: true
   loki:
     enabled: false
   elasticsearch:
     enabled: true
     mode: eck
     name: city-elasticsearch
-    version: 8.12.0
+    version: 9.4.0
     image:
-      repository: elasticsearch
-      tag: 8.12.0
+      repository: docker.elastic.co/elasticsearch/elasticsearch
+      tag: 9.4.0
     nodeSets:
     - name: default
       count: 3
@@ -536,18 +557,18 @@ observability:
   kibana:
     enabled: true
     mode: eck
-    version: 8.12.0
+    version: 9.4.0
     image:
-      repository: kibana
-      tag: 8.12.0
+      repository: docker.elastic.co/kibana/kibana
+      tag: 9.4.0
     count: 2
     port: 5601
   logstash:
     enabled: true
     replicas: 2
     image:
-      repository: logstash
-      tag: 8.12.0
+      repository: docker.elastic.co/logstash/logstash
+      tag: 9.4.0
     ports:
     - name: beats
       containerPort: 5044
@@ -1853,7 +1874,7 @@ zabbixAgent:
   enabled: true
   image:
     repository: zabbix/zabbix-agent2
-    tag: ubuntu-7.0.25
+    tag: ubuntu-7.4.10
   replicas: 3
   ports:
   - name: agent

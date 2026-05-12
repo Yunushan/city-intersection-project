@@ -6,27 +6,27 @@ profiles:
     status: default
     haProvider: cloudnative-pg
     images:
-    - postgres:16.2
+    - postgres:18.3
   postgis:
     status: default-for-spatial
     haProvider: cloudnative-pg
     images:
-    - postgis/postgis:16-3.4
+    - postgis/postgis:18-3.6
   timescaledb:
     status: default-for-timeseries
     haProvider: cloudnative-pg
     images:
-    - timescale/timescaledb:2.26.4-pg16
+    - timescale/timescaledb:2.26.4-pg18
   redis:
     status: enabled
     haProvider: sentinel|operator
     images:
-    - redis:6.2
+    - redis:8.6.2
   elasticsearch:
     status: enabled-observability
     haProvider: eck
     images:
-    - elasticsearch:8.12.0
+    - docker.elastic.co/elasticsearch/elasticsearch:9.4.0
   opensearch:
     status: optional
     haProvider: opensearch-operator|helm

@@ -9,7 +9,7 @@
 - Modern compatibility lane: Python 3.12, 3.13, and 3.14 with ansible-core 2.20.5
 - Webserver: nginx
 - Database profile: PostgreSQL/PostGIS/TimescaleDB via CloudNativePG
-- Observability profile: Elasticsearch/Kibana/Logstash with Grafana option
+- Observability profile: Elastic ECK + Prometheus/Grafana + OpenTelemetry Collector
 
 ## Supported profiles
 

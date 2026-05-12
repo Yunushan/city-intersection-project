@@ -138,6 +138,12 @@ if values.get('secretManagement', {}).get('enabled') is not False:
     errors.append('Secret management chart rendering must be disabled by default')
 if values.get('monitoring', {}).get('enabled') is not False:
     errors.append('Monitoring CRDs must be disabled by default so the chart renders before operators are installed')
+observability_values = values.get('observability', {})
+if observability_values.get('stack', {}).get('name') != 'elastic-eck-prometheus-grafana-opentelemetry':
+    errors.append('Default observability stack must be Elastic ECK + Prometheus/Grafana + OpenTelemetry')
+for observability_component in ['elasticsearch', 'kibana', 'logstash', 'grafana', 'prometheus', 'opentelemetry']:
+    if observability_values.get(observability_component, {}).get('enabled') is not True:
+        errors.append(f'Default observability component must be enabled: {observability_component}')
 monitoring_values = values.get('monitoring', {})
 if monitoring_values.get('prometheusRules', {}).get('enabled') is not True:
     errors.append('Monitoring values must enable PrometheusRule generation when monitoring.enabled is true')
@@ -289,6 +295,12 @@ for rke2_wait_token in [
     'Reject unsupported RKE2 cluster-init config',
     'Check RKE2 server join URL in rendered config',
     'Show initial RKE2 startup state',
+    'Detect corrupt RKE2 embedded etcd snapshot state',
+    'failed to recover v3 backend from snapshot',
+    'Archive corrupt RKE2 datastore before retry',
+    'db.corrupt.$(date -u +%Y%m%dT%H%M%SZ)',
+    'rke2_auto_recover_corrupt_etcd_snapshot',
+    'Show recovered RKE2 startup state',
     'ExecMainStatus',
     'systemctl is-failed --quiet "{{ rke2_service_name }}"',
     'rke2_registration_probe',
@@ -471,6 +483,8 @@ if image_policy_controls.get('requireDigestsForProduction') is not True:
 blocked_tags = set(image_policy_controls.get('disallowMutableTags', []))
 if 'latest' not in blocked_tags:
     errors.append('Image policy must block the latest tag')
+if 'latest-pg18' not in blocked_tags:
+    errors.append('Image policy must block TimescaleDB latest-pg18 mutable tag')
 if image_policy_controls.get('defaultApplicationTag') != '0.1.0':
     errors.append('Image policy must pin placeholder application images to 0.1.0')
 for approved_repository in [
@@ -481,6 +495,48 @@ for approved_repository in [
 ]:
     if approved_repository not in (ROOT / 'config/image-policy.yaml').read_text(encoding='utf-8'):
         errors.append(f'Image policy missing approved runtime image: {approved_repository}')
+
+runtime_image_surface_text = '\n'.join(
+    (ROOT / runtime_image_file).read_text(encoding='utf-8')
+    for runtime_image_file in [
+        'README.md',
+        'config/image-policy.yaml',
+        'config/services.catalog.yaml',
+        'config/databases.catalog.yaml',
+        'config/webservers.yaml',
+        'helm/urban-platform-infra/values.yaml',
+        'compose/docker-compose.ha.yml',
+    ]
+)
+for current_runtime_image in [
+    'nginx:1.30.0',
+    'confluentinc/cp-kafka:7.9.6',
+    'confluentinc/cp-zookeeper:7.9.6',
+    'redis:8.6.2',
+    'postgres:18.3',
+    'postgis/postgis:18-3.6',
+    'timescale/timescaledb:2.26.4-pg18',
+    'docker.elastic.co/elasticsearch/elasticsearch:9.4.0',
+    'docker.elastic.co/kibana/kibana:9.4.0',
+    'docker.elastic.co/logstash/logstash:9.4.0',
+    'zabbix/zabbix-agent2:ubuntu-7.4.10',
+]:
+    if current_runtime_image not in runtime_image_surface_text:
+        errors.append(f'Runtime image surface missing current pin: {current_runtime_image}')
+for retired_runtime_image in [
+    'nginx:1.18',
+    'confluentinc/cp-kafka:7.5.0',
+    'confluentinc/cp-zookeeper:7.5.0',
+    'redis:6.2',
+    'postgres:16.2',
+    'postgis/postgis:16-3.4',
+    'elasticsearch:8.12.0',
+    'kibana:8.12.0',
+    'logstash:8.12.0',
+    'zabbix/zabbix-agent2:ubuntu-7.0.25',
+]:
+    if retired_runtime_image in runtime_image_surface_text:
+        errors.append(f'Runtime image surface still contains retired pin: {retired_runtime_image}')
 
 slo_contract = yaml.safe_load((ROOT / 'config/slo.yaml').read_text(encoding='utf-8'))
 objectives = slo_contract.get('objectives', {})
@@ -515,6 +571,22 @@ status_script = (ROOT / 'scripts/health/status.sh').read_text(encoding='utf-8')
 for status_token in ['prometheusrules.monitoring.coreos.com', 'servicemonitors.monitoring.coreos.com', 'observability']:
     if status_token not in status_script:
         errors.append(f'status script missing observability check: {status_token}')
+observability_contract = yaml.safe_load((ROOT / 'config/observability.yaml').read_text(encoding='utf-8'))
+if observability_contract.get('defaultStack') != 'elastic-eck-prometheus-grafana-opentelemetry':
+    errors.append('Observability contract must declare the enterprise default stack')
+for observability_profile in ['elasticsearch', 'grafana', 'prometheus', 'opentelemetry']:
+    if observability_contract.get('profiles', {}).get(observability_profile, {}).get('enabled') is not True:
+        errors.append(f'Observability contract must enable default profile: {observability_profile}')
+helmfile_text = (ROOT / 'deploy/helmfile.yaml').read_text(encoding='utf-8')
+for helmfile_token in [
+    'open-telemetry.github.io/opentelemetry-helm-charts',
+    'opentelemetry-collector',
+    'INSTALL_OPENTELEMETRY',
+    'kube-prometheus-stack',
+    'eck-operator',
+]:
+    if helmfile_token not in helmfile_text:
+        errors.append(f'Helmfile missing default observability stack token: {helmfile_token}')
 
 for path in text_files():
     if any(marker in path.name for marker in ['.decrypted.', '.plain.', '.sops.dec.']):
