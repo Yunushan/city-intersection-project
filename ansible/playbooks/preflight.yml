@@ -36,6 +36,67 @@
       no_log: true
       when: selected_cluster_engine == 'rke2'
 
+    - name: Validate RKE2 pod and service CIDR plan
+      ansible.builtin.shell: |
+        set -euo pipefail
+        "{{ ansible_playbook_python }}" - <<'PY'
+        import ipaddress
+        import json
+        import os
+        import sys
+
+        errors = []
+        pod_cidr = ipaddress.ip_network(os.environ["POD_CIDR"], strict=False)
+        service_cidr = ipaddress.ip_network(os.environ["SERVICE_CIDR"], strict=False)
+        cluster_dns = ipaddress.ip_address(os.environ["CLUSTER_DNS"])
+        node_ips = json.loads(os.environ["NODE_IPS_JSON"])
+        underlay_cidrs = json.loads(os.environ["UNDERLAY_CIDRS_JSON"])
+
+        if pod_cidr.overlaps(service_cidr):
+            errors.append(f"pod_cidr {pod_cidr} overlaps service_cidr {service_cidr}")
+        if cluster_dns not in service_cidr:
+            errors.append(f"cluster_dns {cluster_dns} must be inside service_cidr {service_cidr}")
+        if cluster_dns in pod_cidr:
+            errors.append(f"cluster_dns {cluster_dns} must not be inside pod_cidr {pod_cidr}")
+
+        for node_ip in node_ips + [os.environ.get("CLUSTER_VIP", "")]:
+            if not node_ip:
+                continue
+            address = ipaddress.ip_address(node_ip)
+            if address in pod_cidr:
+                errors.append(f"node/VIP IP {address} is inside pod_cidr {pod_cidr}")
+            if address in service_cidr:
+                errors.append(f"node/VIP IP {address} is inside service_cidr {service_cidr}")
+
+        for underlay in underlay_cidrs:
+            network = ipaddress.ip_network(underlay, strict=False)
+            if pod_cidr.overlaps(network):
+                errors.append(f"pod_cidr {pod_cidr} overlaps underlay/routed CIDR {network}")
+            if service_cidr.overlaps(network):
+                errors.append(f"service_cidr {service_cidr} overlaps underlay/routed CIDR {network}")
+
+        if errors:
+            print("\n".join(errors), file=sys.stderr)
+            sys.exit(1)
+        PY
+      args:
+        executable: /bin/bash
+      environment:
+        POD_CIDR: "{{ pod_cidr | default('100.64.0.0/16') }}"
+        SERVICE_CIDR: "{{ service_cidr | default('100.65.0.0/16') }}"
+        CLUSTER_DNS: "{{ cluster_dns | default('100.65.0.10') }}"
+        CLUSTER_VIP: "{{ cluster_vip | default('') }}"
+        UNDERLAY_CIDRS_JSON: "{{ cluster_underlay_cidrs | default([]) | to_json }}"
+        NODE_IPS_JSON: >-
+          [
+          {%- for host in groups.get('cluster_nodes', []) -%}
+          "{{ hostvars[host].node_ip | default(hostvars[host].ansible_host | default('')) }}"
+          {%- if not loop.last -%},{%- endif -%}
+          {%- endfor -%}
+          ]
+      changed_when: false
+      when: selected_cluster_engine == 'rke2'
+
     - name: Validate K3s production inputs
       ansible.builtin.assert:
         that:

@@ -30,6 +30,10 @@ If HAProxy is running but reports `backend rke2_registration_servers has no serv
 
 If the journal shows `failed to recover v3 backend from snapshot`, `failed to find database snapshot file`, or `snapshot file doesn't exist`, the node has a stale or corrupt embedded-etcd datastore from an interrupted bootstrap. The RKE2 role scans the recent journal for that exact panic before waiting on `9345`, stops the service, archives `/var/lib/rancher/rke2/server/db` to `/var/lib/rancher/rke2/server/db.corrupt.<timestamp>`, resets the failed unit, and retries startup. Set `rke2_auto_recover_corrupt_etcd_snapshot=false` in inventory if you want to inspect and recover an established production datastore manually.
 
+## RKE2 pod IP range overlaps another network
+
+RKE2 defaults can place pods in `10.42.0.0/16` and services in `10.43.0.0/16`. This project overrides those defaults to `100.64.0.0/16` for pods, `100.65.0.0/16` for services, and `100.65.0.10` for cluster DNS. Set `pod_cidr`, `service_cidr`, `cluster_dns`, and `cluster_underlay_cidrs` in the private inventory before bootstrap if those ranges overlap your real routed networks. Changing these values after a cluster is initialized requires rebuilding the RKE2 datastore/cluster; do not change them in-place on a running production cluster.
+
 ## Images cannot be pulled
 
 Set `global.imageRegistry`, configure `imagePullSecrets`, or preload images:

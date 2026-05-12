@@ -140,6 +140,11 @@ all:
     rke2_version: "v<major>.<minor>.<patch>+rke2r<revision>"
     keepalived_auth_pass: "<vaulted-keepalived-pass>"
     keepalived_interface: <network-interface>
+    pod_cidr: 100.64.0.0/16
+    service_cidr: 100.65.0.0/16
+    cluster_dns: 100.65.0.10
+    cluster_underlay_cidrs:
+      - <node-lan-cidr>
   children:
     rke2_servers:
       hosts:

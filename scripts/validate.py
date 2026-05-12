@@ -284,14 +284,20 @@ for preflight_token in [
     'Validate RedHat-family major 10 target Python compatibility',
     'supported_ansible_220_target_python_min: "3.9"',
     'supported_ansible_220_target_python_max_exclusive: "3.15"',
+    'Validate RKE2 pod and service CIDR plan',
+    'cluster_underlay_cidrs',
+    'cluster_dns {cluster_dns} must be inside service_cidr',
 ]:
     if preflight_token not in preflight_text:
-        errors.append(f'Ansible preflight missing RedHat-family major 10 compatibility token: {preflight_token}')
+        errors.append(f'Ansible preflight missing compatibility/safety token: {preflight_token}')
 
 rke2_server_config_template = (ROOT / 'ansible/roles/rke2/templates/config.yaml.j2').read_text(encoding='utf-8')
 for rke2_config_token in [
     "{% if inventory_hostname != groups['rke2_servers'][0] %}",
     'server: "https://{{ cluster_vip }}:{{ rke2_registration_vip_port | default(9346) }}"',
+    'cluster-cidr: "{{ pod_cidr | default(\'100.64.0.0/16\') }}"',
+    'service-cidr: "{{ service_cidr | default(\'100.65.0.0/16\') }}"',
+    'cluster-dns: "{{ cluster_dns | default(\'100.65.0.10\') }}"',
 ]:
     if rke2_config_token not in rke2_server_config_template:
         errors.append(f'RKE2 server config template missing HA bootstrap token: {rke2_config_token}')
