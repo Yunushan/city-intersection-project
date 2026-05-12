@@ -24,6 +24,7 @@ REQUIRED = [
     'ansible/requirements.yml', 'ansible/requirements-modern.yml',
     '.sops.yaml.example', 'ansible/playbooks/preflight.yml',
     'helm/urban-platform-infra/Chart.yaml', 'helm/urban-platform-infra/values.yaml',
+    'helm/urban-platform-infra/templates/databases-cnpg-imagecatalogs.yaml',
     'config/services.catalog.yaml', 'config/cluster-profiles.yaml',
     'config/deployment-topologies.yaml', 'config/secrets.contract.yaml',
     'config/supply-chain-policy.yaml', 'config/image-policy.yaml', 'config/slo.yaml',
@@ -145,8 +146,17 @@ for redirect_key in ['sslRedirect', 'forceSslRedirect']:
         errors.append(f'Ingress HTTPS redirect must be enabled by default: {redirect_key}')
 if values.get('webserver', {}).get('ingress', {}).get('enabled') is not True:
     errors.append('Webserver root ingress must be enabled by default')
+if values.get('namespace', {}).get('create') is not False:
+    errors.append('Namespace manifest rendering must be disabled by default; deploy tooling labels it first')
 if values.get('monitoring', {}).get('enabled') is not False:
     errors.append('Monitoring CRDs must be disabled by default so the chart renders before operators are installed')
+timescaledb_values = values.get('databases', {}).get('instances', {}).get('timescaledb', {})
+timescaledb_catalog_ref = timescaledb_values.get('imageCatalogRef', {})
+if timescaledb_catalog_ref.get('kind') != 'ImageCatalog' or timescaledb_catalog_ref.get('major') != 18:
+    errors.append('TimescaleDB must use a CNPG ImageCatalog reference for PostgreSQL 18 image detection')
+timescaledb_catalog = values.get('databases', {}).get('imageCatalogs', {}).get('timescaledb', {})
+if timescaledb_catalog.get('enabled') is not True:
+    errors.append('TimescaleDB CNPG ImageCatalog must be enabled by default')
 observability_values = values.get('observability', {})
 if observability_values.get('stack', {}).get('name') != 'elastic-eck-prometheus-grafana-opentelemetry':
     errors.append('Default observability stack must be Elastic ECK + Prometheus/Grafana + OpenTelemetry')
@@ -357,6 +367,17 @@ for webserver_ingress_token in [
     if webserver_ingress_token not in webserver_template_text:
         errors.append(f'Webserver template missing root HTTPS ingress token: {webserver_ingress_token}')
 
+cnpg_cluster_template_text = (ROOT / 'helm/urban-platform-infra/templates/databases-cnpg.yaml').read_text(encoding='utf-8')
+for cnpg_cluster_token in ['imageCatalogRef:', 'imageName:', '$db.imageCatalogRef.major']:
+    if cnpg_cluster_token not in cnpg_cluster_template_text:
+        errors.append(f'CNPG cluster template missing ImageCatalog support token: {cnpg_cluster_token}')
+cnpg_catalog_template_text = (
+    ROOT / 'helm/urban-platform-infra/templates/databases-cnpg-imagecatalogs.yaml'
+).read_text(encoding='utf-8')
+for cnpg_catalog_token in ['kind: ImageCatalog', '.Values.databases.imageCatalogs', 'include "cip.image"']:
+    if cnpg_catalog_token not in cnpg_catalog_template_text:
+        errors.append(f'CNPG ImageCatalog template missing token: {cnpg_catalog_token}')
+
 makefile_text = (ROOT / 'Makefile').read_text(encoding='utf-8')
 if 'CONFIRM_PROD' not in makefile_text:
     errors.append('Makefile mutating Ansible targets must require production confirmation')
@@ -372,9 +393,13 @@ for makefile_helm_token in [
     'wait-operator-crds:',
     '$(HELMFILE) -f $(HELMFILE_CONFIG) sync',
     'crd/clusters.postgresql.cnpg.io',
+    'crd/imagecatalogs.postgresql.cnpg.io',
     'crd/elasticsearches.elasticsearch.k8s.elastic.co',
     'crd/kibanas.kibana.k8s.elastic.co',
-    'deploy: install-operators',
+    'ensure-namespace:',
+    'kubectl create namespace $(NAMESPACE)',
+    'kubectl label namespace $(NAMESPACE)',
+    'deploy: install-operators ensure-namespace',
 ]:
     if makefile_helm_token not in makefile_text:
         errors.append(f'Makefile must prepare operator tooling before deploy: {makefile_helm_token}')
@@ -662,6 +687,10 @@ for helmfile_token in [
     'INSTALL_OPENTELEMETRY',
     'kube-prometheus-stack',
     'eck-operator',
+    'version: 0.28.0',
+    'version: 3.4.0',
+    'installCRDs: true',
+    'memory: 512Mi',
 ]:
     if helmfile_token not in helmfile_text:
         errors.append(f'Helmfile missing default observability stack token: {helmfile_token}')

@@ -91,6 +91,12 @@ If Helmfile reports `unknown command "diff" for "helm"`, use
 from a version of this repository that uses `sync`. The normal operator install
 path intentionally avoids requiring the Helm diff plugin.
 
+If the platform chart is denied with PostgreSQL 18, TimescaleDB, or Elastic
+Stack 9.x validation errors, rerun `make deploy` from a version of this
+repository that installs CloudNativePG 1.29+ and ECK 3.4+. The default
+TimescaleDB resource also requires the chart's CNPG `ImageCatalog` template so
+the operator sees `timescale/timescaledb:2.26.4-pg18` as PostgreSQL 18.
+
 ## PrometheusRule or ServiceMonitor resources not recognized
 
 Install kube-prometheus-stack before enabling `monitoring.enabled=true`:

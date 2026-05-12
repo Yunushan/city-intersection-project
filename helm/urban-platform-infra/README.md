@@ -9,7 +9,8 @@ This chart renders the default HA application stack for `urban-platform-infra`.
 helm template urban-platform-infra . -n urban-platform -f values.yaml
 
 # Install/upgrade
-helm upgrade --install urban-platform-infra . -n urban-platform --create-namespace -f values.yaml
+kubectl create namespace urban-platform --dry-run=client -o yaml | kubectl apply -f -
+helm upgrade --install urban-platform-infra . -n urban-platform --cleanup-on-fail -f values.yaml
 ```
 
 Switches are handled in `values.yaml`:
@@ -22,3 +23,4 @@ Switches are handled in `values.yaml`:
 - `ingress.tls.enabled`: enabled by default with HTTP to HTTPS redirect. Provide `ingress.tls.secretName` with a real certificate for production.
 
 CloudNativePG and ECK CRs require operators. Install them with `make install-operators`.
+The default pins expect CloudNativePG 1.29+ and ECK 3.4+ for PostgreSQL 18 and Elastic Stack 9.x support.

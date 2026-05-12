@@ -43,16 +43,18 @@ releases:
   - name: cloudnative-pg
     namespace: cnpg-system
     chart: cloudnative-pg/cloudnative-pg
-    version: 0.23.2
+    version: 0.28.0
     installed: {{ env "INSTALL_CNPG" | default "true" }}
     createNamespace: true
 
   - name: eck-operator
     namespace: elastic-system
     chart: elastic/eck-operator
-    version: 2.14.0
+    version: 3.4.0
     installed: {{ env "INSTALL_ECK" | default "true" }}
     createNamespace: true
+    values:
+      - installCRDs: true
 
   - name: kube-prometheus-stack
     namespace: observability
@@ -80,6 +82,12 @@ releases:
             enabled: true
           kubernetesEvents:
             enabled: true
+        resources:
+          requests:
+            cpu: 100m
+            memory: 256Mi
+          limits:
+            memory: 512Mi
 
   - name: loki
     namespace: observability

@@ -25,7 +25,7 @@ HELMFILE_CONFIG ?= deploy/helmfile.yaml.gotmpl
 HELMFILE_INSTALL_SCRIPT ?= scripts/tools/install-helmfile.sh
 OPERATOR_CRD_TIMEOUT ?= 180s
 
-.PHONY: help validate image-policy lint configure ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster install-helm install-helmfile install-operators wait-operator-crds deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
+.PHONY: help validate image-policy lint configure ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
 
 define require_prod_confirmation
 	@if [ "$(ENV)" = "prod" ] && [ "$(CONFIRM_PROD)" != "true" ]; then \
@@ -83,12 +83,17 @@ install-helmfile: install-helm ## Install Helmfile on the operator machine when 
 
 wait-operator-crds: ## Wait until CRDs required by the default platform chart exist.
 	kubectl wait --for=condition=Established crd/clusters.postgresql.cnpg.io --timeout=$(OPERATOR_CRD_TIMEOUT)
+	kubectl wait --for=condition=Established crd/imagecatalogs.postgresql.cnpg.io --timeout=$(OPERATOR_CRD_TIMEOUT)
 	kubectl wait --for=condition=Established crd/elasticsearches.elasticsearch.k8s.elastic.co --timeout=$(OPERATOR_CRD_TIMEOUT)
 	kubectl wait --for=condition=Established crd/kibanas.kibana.k8s.elastic.co --timeout=$(OPERATOR_CRD_TIMEOUT)
 
 install-operators: install-helmfile ## Install optional operators/charts needed for HA data and observability profiles.
 	$(HELMFILE) -f $(HELMFILE_CONFIG) sync
 	$(MAKE) wait-operator-crds OPERATOR_CRD_TIMEOUT=$(OPERATOR_CRD_TIMEOUT)
+
+ensure-namespace: ## Create and label the target namespace before deploying the platform chart.
+	kubectl create namespace $(NAMESPACE) --dry-run=client -o yaml | kubectl apply -f -
+	kubectl label namespace $(NAMESPACE) pod-security.kubernetes.io/enforce=baseline pod-security.kubernetes.io/audit=restricted pod-security.kubernetes.io/warn=restricted pod-security.kubernetes.io/enforce-version=latest pod-security.kubernetes.io/audit-version=latest pod-security.kubernetes.io/warn-version=latest --overwrite
 
 deploy-dry-run: install-helm ## Render the Helm chart without applying it.
 	$(HELM) template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) -f $(TOPOLOGY_VALUES) --dry-run > rendered.yaml
@@ -108,8 +113,8 @@ release-evidence: package-chart ## Generate rendered manifest, SPDX SBOM, and ch
 	$(HELM) template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) > dist/rendered.yaml
 	python3 scripts/release/generate_sbom.py --chart helm/urban-platform-infra --dist dist --rendered dist/rendered.yaml --sbom dist/urban-platform-infra.spdx.json --checksums dist/SHA256SUMS
 
-deploy: install-operators ## Deploy/upgrade the HA application platform.
-	$(HELM) upgrade --install $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) --create-namespace -f $(VALUES) -f $(TOPOLOGY_VALUES)
+deploy: install-operators ensure-namespace ## Deploy/upgrade the HA application platform.
+	$(HELM) upgrade --install $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) --cleanup-on-fail -f $(VALUES) -f $(TOPOLOGY_VALUES)
 
 status: ## Show cluster and workload status.
 	scripts/health/status.sh $(NAMESPACE)

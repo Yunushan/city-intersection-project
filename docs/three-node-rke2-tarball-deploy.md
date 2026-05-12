@@ -214,7 +214,6 @@ If the previous project already has a Helm chart:
 ```bash
 helm upgrade --install previous-app <chart-path> \
   --namespace previous-app \
-  --create-namespace \
   -f <sanitized-values-file>
 ```
 
@@ -237,9 +236,11 @@ ingress:
 Deploy with the three-node topology override:
 
 ```bash
+kubectl create namespace urban-platform --dry-run=client -o yaml | kubectl apply -f -
+
 helm upgrade --install urban-platform-infra helm/urban-platform-infra \
   --namespace urban-platform \
-  --create-namespace \
+  --cleanup-on-fail \
   -f helm/urban-platform-infra/values.yaml \
   -f helm/urban-platform-infra/topologies/three-node-ha.yaml \
   -f <private-values-file>

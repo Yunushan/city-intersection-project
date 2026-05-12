@@ -13,7 +13,15 @@ metadata:
     urban-platform.io/database-engine: {{ $db.engine | quote }}
 spec:
   instances: {{ include "cip.replicaCount" (list $ ($db.instances | default $.Values.databases.defaultInstances)) }}
+  {{- if $db.imageCatalogRef }}
+  imageCatalogRef:
+    apiGroup: {{ $db.imageCatalogRef.apiGroup | default "postgresql.cnpg.io" | quote }}
+    kind: {{ $db.imageCatalogRef.kind | default "ImageCatalog" | quote }}
+    name: {{ $db.imageCatalogRef.name | quote }}
+    major: {{ required (printf "databases.instances.%s.imageCatalogRef.major is required" $name) $db.imageCatalogRef.major }}
+  {{- else }}
   imageName: {{ include "cip.image" (list $ $db.image) | quote }}
+  {{- end }}
   primaryUpdateStrategy: unsupervised
   bootstrap:
     initdb:

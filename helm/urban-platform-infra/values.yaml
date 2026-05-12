@@ -33,7 +33,7 @@ global:
     topologySpread: true
     antiAffinity: preferred
 namespace:
-  create: true
+  create: false
   name: urban-platform
   podSecurity:
     enforce: baseline
@@ -233,6 +233,14 @@ databases:
   backup:
     enabled: false
     retentionPolicy: 30d
+  imageCatalogs:
+    timescaledb:
+      enabled: true
+      images:
+      - major: 18
+        image:
+          repository: timescale/timescaledb
+          tag: 2.26.4-pg18
   instances:
     db-01-postgres:
       enabled: true
@@ -512,6 +520,10 @@ databases:
       image:
         repository: timescale/timescaledb
         tag: 2.26.4-pg18
+      imageCatalogRef:
+        kind: ImageCatalog
+        name: timescaledb
+        major: 18
       database: timeseries
       owner: timeseries
       instances: 3

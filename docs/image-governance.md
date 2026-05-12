@@ -67,6 +67,10 @@ This validates:
 
 Kafka remains on the latest ZooKeeper-compatible Confluent Platform 7.9.x line. Moving to Confluent Platform 8.x requires a KRaft migration and removal of the ZooKeeper deployment from the chart and compose profiles.
 
+The TimescaleDB tag does not start with a PostgreSQL major version, so the Helm
+chart declares a CloudNativePG `ImageCatalog` entry with `major: 18` and has the
+TimescaleDB `Cluster` reference that catalog.
+
 ## References
 
 - Kubernetes image names, tags, and digests: https://kubernetes.io/docs/concepts/containers/images/

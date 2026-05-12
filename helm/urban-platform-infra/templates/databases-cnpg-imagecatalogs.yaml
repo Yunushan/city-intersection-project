@@ -1,0 +1,21 @@
+{{- if and .Values.databases.enabled (eq .Values.databases.provider "cloudnative-pg") }}
+{{- range $name, $catalog := .Values.databases.imageCatalogs }}
+{{- if $catalog.enabled }}
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ImageCatalog
+metadata:
+  name: {{ $catalog.name | default $name }}
+  namespace: {{ include "cip.namespace" $ }}
+  labels:
+    {{- include "cip.labels" $ | nindent 4 }}
+    app.kubernetes.io/name: {{ $catalog.name | default $name }}
+spec:
+  images:
+    {{- range $image := $catalog.images }}
+    - major: {{ required (printf "databases.imageCatalogs.%s.images[].major is required" $name) $image.major }}
+      image: {{ include "cip.image" (list $ $image.image) | quote }}
+    {{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

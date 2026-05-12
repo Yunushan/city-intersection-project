@@ -12,6 +12,10 @@ The deployment target installs Helm and Helmfile when missing, applies the
 templated operator Helmfile, waits for CNPG and ECK CRDs, then installs the
 platform chart.
 
+The default operator pins are intentionally current for this stack:
+CloudNativePG 1.29+ is required for PostgreSQL 18 defaults, and ECK 3.4+ is
+required for Kubernetes 1.34 and Elastic Stack 9.x.
+
 The operator step uses `helmfile sync`, so the Helm diff plugin is not required
 on the operator machine.
 

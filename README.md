@@ -114,6 +114,9 @@ Supported topology profiles:
 - `three-node-ha`: default production HA.
 - `multi-node-ha`: three or five control-plane nodes plus scalable workers.
 
+The default operator bundle pins CloudNativePG 1.29+ and ECK 3.4+ so the
+PostgreSQL 18 and Elastic Stack 9.x defaults are admitted on Kubernetes 1.34.
+
 Topology contracts are in [`config/deployment-topologies.yaml`](config/deployment-topologies.yaml), Helm overrides are in [`helm/urban-platform-infra/topologies/`](helm/urban-platform-infra/topologies/), and starter inventories are in [`inventories/topologies/`](inventories/topologies/).
 
 The image and port inventory is stored in [`config/services.catalog.yaml`](config/services.catalog.yaml). Helm values are stored in [`helm/urban-platform-infra/values.yaml`](helm/urban-platform-infra/values.yaml).
