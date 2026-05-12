@@ -13,8 +13,9 @@ make install-operators
 make deploy ENV=prod
 ```
 
-`make deploy` installs Helm on the operator machine if the `helm` binary is
-missing, then runs the chart upgrade/install.
+`make deploy` installs Helm and Helmfile on the operator machine if they are
+missing, installs the required operator CRDs, waits for the default CNPG and ECK
+CRDs, then runs the chart upgrade/install.
 
 Topology-specific starting points are also available:
 

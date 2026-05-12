@@ -8,7 +8,8 @@ make install-operators
 make deploy
 ```
 
-The deployment target installs Helm on the operator machine when it is missing.
+The deployment target installs Helm and Helmfile when missing, applies the
+operator Helmfile, waits for CNPG and ECK CRDs, then installs the platform chart.
 
 ## Observe
 

@@ -20,8 +20,11 @@ ANSIBLE_COLLECTIONS_STAMP ?= .ansible/collections/.$(subst /,_,$(ANSIBLE_COLLECT
 CONFIRM_PROD ?= false
 HELM ?= helm
 HELM_INSTALL_SCRIPT ?= scripts/tools/install-helm.sh
+HELMFILE ?= helmfile
+HELMFILE_INSTALL_SCRIPT ?= scripts/tools/install-helmfile.sh
+OPERATOR_CRD_TIMEOUT ?= 180s
 
-.PHONY: help validate image-policy lint configure ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster install-helm install-operators deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
+.PHONY: help validate image-policy lint configure ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster install-helm install-helmfile install-operators wait-operator-crds deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
 
 define require_prod_confirmation
 	@if [ "$(ENV)" = "prod" ] && [ "$(CONFIRM_PROD)" != "true" ]; then \
@@ -74,8 +77,17 @@ install-cluster: ansible-collections ## Install selected cluster engine: rke2, k
 install-helm: ## Install Helm on the operator machine when it is missing.
 	bash $(HELM_INSTALL_SCRIPT)
 
-install-operators: install-helm ## Install optional operators/charts needed for HA data and observability profiles.
-	helmfile -f deploy/helmfile.yaml apply
+install-helmfile: install-helm ## Install Helmfile on the operator machine when it is missing.
+	bash $(HELMFILE_INSTALL_SCRIPT)
+
+wait-operator-crds: ## Wait until CRDs required by the default platform chart exist.
+	kubectl wait --for=condition=Established crd/clusters.postgresql.cnpg.io --timeout=$(OPERATOR_CRD_TIMEOUT)
+	kubectl wait --for=condition=Established crd/elasticsearches.elasticsearch.k8s.elastic.co --timeout=$(OPERATOR_CRD_TIMEOUT)
+	kubectl wait --for=condition=Established crd/kibanas.kibana.k8s.elastic.co --timeout=$(OPERATOR_CRD_TIMEOUT)
+
+install-operators: install-helmfile ## Install optional operators/charts needed for HA data and observability profiles.
+	$(HELMFILE) -f deploy/helmfile.yaml apply
+	$(MAKE) wait-operator-crds OPERATOR_CRD_TIMEOUT=$(OPERATOR_CRD_TIMEOUT)
 
 deploy-dry-run: install-helm ## Render the Helm chart without applying it.
 	$(HELM) template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) -f $(TOPOLOGY_VALUES) --dry-run > rendered.yaml
@@ -95,7 +107,7 @@ release-evidence: package-chart ## Generate rendered manifest, SPDX SBOM, and ch
 	$(HELM) template $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) -f $(VALUES) > dist/rendered.yaml
 	python3 scripts/release/generate_sbom.py --chart helm/urban-platform-infra --dist dist --rendered dist/rendered.yaml --sbom dist/urban-platform-infra.spdx.json --checksums dist/SHA256SUMS
 
-deploy: install-helm ## Deploy/upgrade the HA application platform.
+deploy: install-operators ## Deploy/upgrade the HA application platform.
 	$(HELM) upgrade --install $(PROJECT) helm/urban-platform-infra --namespace $(NAMESPACE) --create-namespace -f $(VALUES) -f $(TOPOLOGY_VALUES)
 
 status: ## Show cluster and workload status.
