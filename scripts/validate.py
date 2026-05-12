@@ -327,6 +327,7 @@ for rke2_wait_token in [
     'Recent journal:',
     'registration_waiting',
     'ss -ltnH',
+    "default(['80/tcp', '443/tcp', '8472/udp', '10250/tcp'])",
     'Trust RKE2 pod and service CIDRs in firewalld',
     "zone: trusted",
     "pod_cidr | default('100.64.0.0/16')",

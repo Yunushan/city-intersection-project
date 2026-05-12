@@ -27,6 +27,11 @@ install the Kubernetes Dashboard and expose it through an Ingress/port-forward.
 The cluster install target only brings up Kubernetes and ingress-nginx; it does
 not deploy the platform workload by itself.
 
+RKE2 nodes open `80/tcp` and `443/tcp` for the bundled ingress controller by
+default. The chart root Ingress enables TLS and HTTP-to-HTTPS redirect by
+default, so normal user traffic should enter through `https://<vip>` after the
+application chart is deployed.
+
 ## RKE2 registration wait does not finish
 
 The first RKE2 server must open local port `9345` before the VIP can forward registration traffic. The first server config intentionally omits `server:` so it can bootstrap the embedded datastore; later servers use the VIP registration address. The install role probes the local listener in a retry loop that fails with RKE2 service, journal, and socket diagnostics.

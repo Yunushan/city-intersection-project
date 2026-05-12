@@ -112,7 +112,7 @@
     state: enabled
   loop: >-
     {{
-      (rke2_firewalld_common_ports | default(['8472/udp', '10250/tcp'])) +
+      (rke2_firewalld_common_ports | default(['80/tcp', '443/tcp', '8472/udp', '10250/tcp'])) +
       (
         rke2_firewalld_server_ports | default(['6443/tcp', '9345/tcp', '2379/tcp', '2380/tcp'])
         if inventory_hostname in groups['rke2_servers']
