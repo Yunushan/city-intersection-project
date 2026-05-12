@@ -124,6 +124,32 @@
     - not ansible_check_mode
     - rke2_firewalld_state.stdout | default('') == 'active'
 
+- name: Trust RKE2 pod and service CIDRs in firewalld
+  ansible.posix.firewalld:
+    zone: trusted
+    source: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop:
+    - "{{ pod_cidr | default('100.64.0.0/16') }}"
+    - "{{ service_cidr | default('100.65.0.0/16') }}"
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+    - rke2_firewalld_state.stdout | default('') == 'active'
+
+- name: Enable firewalld masquerade for RKE2 overlay egress
+  ansible.posix.firewalld:
+    masquerade: true
+    permanent: true
+    immediate: true
+    state: enabled
+  when:
+    - ansible_system == 'Linux'
+    - not ansible_check_mode
+    - rke2_firewalld_state.stdout | default('') == 'active'
+
 - name: Set RKE2 service facts
   ansible.builtin.set_fact:
     rke2_config_changed: >-

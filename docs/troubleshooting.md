@@ -18,6 +18,15 @@ ss -lntp | grep -E '6443|7443|9345|9346'
 curl -k https://<vip>:7443/readyz
 ```
 
+## VIP shows nginx 404
+
+An nginx `404 Not Found` at `http://<vip>` or `https://<vip>` means the ingress
+controller is reachable, but no application or dashboard Ingress currently
+matches that host/path. Install the application chart with `make deploy` or
+install the Kubernetes Dashboard and expose it through an Ingress/port-forward.
+The cluster install target only brings up Kubernetes and ingress-nginx; it does
+not deploy the platform workload by itself.
+
 ## RKE2 registration wait does not finish
 
 The first RKE2 server must open local port `9345` before the VIP can forward registration traffic. The first server config intentionally omits `server:` so it can bootstrap the embedded datastore; later servers use the VIP registration address. The install role probes the local listener in a retry loop that fails with RKE2 service, journal, and socket diagnostics.
@@ -33,6 +42,26 @@ If the journal shows `failed to recover v3 backend from snapshot`, `failed to fi
 ## RKE2 pod IP range overlaps another network
 
 RKE2 defaults can place pods in `10.42.0.0/16` and services in `10.43.0.0/16`. This project overrides those defaults to `100.64.0.0/16` for pods, `100.65.0.0/16` for services, and `100.65.0.10` for cluster DNS. Set `pod_cidr`, `service_cidr`, `cluster_dns`, and `cluster_underlay_cidrs` in the private inventory before bootstrap if those ranges overlap your real routed networks. Changing these values after a cluster is initialized requires rebuilding the RKE2 datastore/cluster; do not change them in-place on a running production cluster.
+
+## API server logs 502 to a pod IP
+
+Messages such as `Sending HTTP/1.1 502 response ... dial tcp 100.64.x.y:10250`
+usually mean the API server is proxying to an aggregated API pod, often
+metrics-server, and the host firewall is blocking cross-node pod traffic. The
+`100.64.0.0/16` range is the Kubernetes pod overlay, not the physical
+`<node-lan-cidr>` node network.
+
+The RKE2 role opens the RKE2 ports, trusts the configured pod and service CIDRs
+in firewalld, enables overlay egress masquerading, and pins flannel to the node
+default interface. Re-run `make bootstrap` and `make install-cluster` after
+updating the inventory or role, then verify:
+
+```bash
+kubectl get nodes -o wide
+kubectl get pods -A -o wide
+kubectl get apiservice v1beta1.metrics.k8s.io
+kubectl top nodes
+```
 
 ## Images cannot be pulled
 

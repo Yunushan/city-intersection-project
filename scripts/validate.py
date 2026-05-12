@@ -295,6 +295,7 @@ rke2_server_config_template = (ROOT / 'ansible/roles/rke2/templates/config.yaml.
 for rke2_config_token in [
     "{% if inventory_hostname != groups['rke2_servers'][0] %}",
     'server: "https://{{ cluster_vip }}:{{ rke2_registration_vip_port | default(9346) }}"',
+    'flannel-iface: "{{ rke2_flannel_iface | default(ansible_default_ipv4.interface) }}"',
     'cluster-cidr: "{{ pod_cidr | default(\'100.64.0.0/16\') }}"',
     'service-cidr: "{{ service_cidr | default(\'100.65.0.0/16\') }}"',
     'cluster-dns: "{{ cluster_dns | default(\'100.65.0.10\') }}"',
@@ -326,6 +327,11 @@ for rke2_wait_token in [
     'Recent journal:',
     'registration_waiting',
     'ss -ltnH',
+    'Trust RKE2 pod and service CIDRs in firewalld',
+    "zone: trusted",
+    "pod_cidr | default('100.64.0.0/16')",
+    "service_cidr | default('100.65.0.0/16')",
+    'Enable firewalld masquerade for RKE2 overlay egress',
 ]:
     if rke2_wait_token not in rke2_role_tasks_text:
         errors.append(f'RKE2 role missing registration wait diagnostic token: {rke2_wait_token}')
