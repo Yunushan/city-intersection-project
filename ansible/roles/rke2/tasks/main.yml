@@ -165,7 +165,15 @@
 - name: Read initial RKE2 startup state
   ansible.builtin.shell: |
     set -euo pipefail
-    echo "service_state=$(systemctl show "{{ rke2_service_name }}" --property=ActiveState --property=SubState --property=Result --property=ExecMainStatus --value | paste -sd ' ' -)"
+    service_state="$(
+      systemctl show "{{ rke2_service_name }}" \
+        --property=ActiveState \
+        --property=SubState \
+        --property=Result \
+        --property=ExecMainStatus \
+        --value | paste -sd ' ' -
+    )"
+    echo "service_state=${service_state}"
     echo "listeners=$(ss -ltnH | awk '{print $4}' | grep -E '(:|\\])((6443)|(9345)|(2379)|(2380)|(10250))$' || true)"
     journalctl -u "{{ rke2_service_name }}" --no-pager -n "{{ rke2_initial_journal_lines | default(40) }}"
   args:
@@ -184,13 +192,40 @@
     - inventory_hostname in groups['rke2_servers']
     - not ansible_check_mode
 
+- name: Scan recent RKE2 journal for corrupt embedded etcd snapshot state
+  ansible.builtin.shell: |
+    set -euo pipefail
+    corrupt_pattern='failed to recover v3 backend from snapshot'
+    corrupt_pattern="${corrupt_pattern}|failed to find database snapshot file"
+    corrupt_pattern="${corrupt_pattern}|snapshot file doesn"
+    journalctl -u "{{ rke2_service_name }}" \
+      --no-pager \
+      -n "{{ rke2_corrupt_etcd_journal_lines | default(800) }}" |
+      grep -E "${corrupt_pattern}"
+  args:
+    executable: /bin/bash
+  register: rke2_corrupt_etcd_snapshot_scan
+  changed_when: false
+  failed_when: false
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
+
 - name: Detect corrupt RKE2 embedded etcd snapshot state
   ansible.builtin.set_fact:
     rke2_corrupt_etcd_snapshot_detected: >-
       {{
-        ((rke2_initial_startup_state.stdout | default('')) |
-        regex_search('failed to recover v3 backend from snapshot|failed to find database snapshot file|snapshot file doesn'))
-        is not none
+        (
+          (
+            (rke2_initial_startup_state.stdout | default('')) |
+            regex_search(
+              'failed to recover v3 backend from snapshot|'
+              ~ 'failed to find database snapshot file|'
+              ~ 'snapshot file doesn'
+            )
+          ) is not none
+        ) or
+        (rke2_corrupt_etcd_snapshot_scan.rc | default(1) == 0)
       }}
   when:
     - inventory_hostname in groups['rke2_servers']
@@ -242,7 +277,15 @@
     - name: Read recovered RKE2 startup state
       ansible.builtin.shell: |
         set -euo pipefail
-        echo "service_state=$(systemctl show "{{ rke2_service_name }}" --property=ActiveState --property=SubState --property=Result --property=ExecMainStatus --value | paste -sd ' ' -)"
+        service_state="$(
+          systemctl show "{{ rke2_service_name }}" \
+            --property=ActiveState \
+            --property=SubState \
+            --property=Result \
+            --property=ExecMainStatus \
+            --value | paste -sd ' ' -
+        )"
+        echo "service_state=${service_state}"
         echo "listeners=$(ss -ltnH | awk '{print $4}' | grep -E '(:|\\])((6443)|(9345)|(2379)|(2380)|(10250))$' || true)"
         journalctl -u "{{ rke2_service_name }}" --no-pager -n "{{ rke2_initial_journal_lines | default(40) }}"
       args:

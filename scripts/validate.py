@@ -295,6 +295,8 @@ for rke2_wait_token in [
     'Reject unsupported RKE2 cluster-init config',
     'Check RKE2 server join URL in rendered config',
     'Show initial RKE2 startup state',
+    'Scan recent RKE2 journal for corrupt embedded etcd snapshot state',
+    'rke2_corrupt_etcd_journal_lines',
     'Detect corrupt RKE2 embedded etcd snapshot state',
     'failed to recover v3 backend from snapshot',
     'Archive corrupt RKE2 datastore before retry',
