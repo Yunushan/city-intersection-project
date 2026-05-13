@@ -83,24 +83,23 @@
         - cluster_engine | default('rke2') == 'rke2'
         - not ansible_check_mode
 
-    - name: Build operator kubeconfig with VIP endpoint
-      ansible.builtin.set_fact:
-        operator_kubeconfig_rendered: >-
-          {{ rke2_operator_kubeconfig.content | b64decode
-          | regex_replace('server: https://[^\\n]+',
-          'server: ' ~ rke2_operator_api_url) }}
+    - name: Copy operator kubeconfig from RKE2 primary server
+      ansible.builtin.copy:
+        dest: "{{ operator_kubeconfig_path }}"
+        mode: '0600'
+        backup: true
+        content: "{{ rke2_operator_kubeconfig.content | b64decode }}"
+      diff: false
       no_log: true
       when:
         - cluster_engine | default('rke2') == 'rke2'
         - not ansible_check_mode
 
-    - name: Install operator kubeconfig as kubectl default
-      ansible.builtin.copy:
-        dest: "{{ operator_kubeconfig_path }}"
-        mode: '0600'
-        backup: true
-        content: "{{ operator_kubeconfig_rendered }}"
-      diff: false
+    - name: Rewrite operator kubeconfig to use VIP endpoint
+      ansible.builtin.replace:
+        path: "{{ operator_kubeconfig_path }}"
+        regexp: 'server: https://[^\n]+'
+        replace: "server: {{ rke2_operator_api_url }}"
       no_log: true
       when:
         - cluster_engine | default('rke2') == 'rke2'
@@ -171,6 +170,21 @@
         - not ansible_check_mode
         - operator_kubectl_command.rc | default(1) != 0
         - rke2_bundled_kubectl.stat.exists | default(false)
+
+    - name: Validate operator kubeconfig syntax
+      ansible.builtin.command:
+        argv:
+          - kubectl
+          - --kubeconfig
+          - "{{ operator_kubeconfig_path }}"
+          - config
+          - view
+          - --minify
+      changed_when: false
+      no_log: true
+      when:
+        - cluster_engine | default('rke2') == 'rke2'
+        - not ansible_check_mode
 
 - name: Install K3s
   hosts: cluster_nodes

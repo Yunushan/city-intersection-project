@@ -408,6 +408,27 @@ for common_swap_token in [
 if 'swapoff -a' in common_role_tasks_text:
     errors.append('Common role must not use blind swapoff -a; disable active devices safely')
 
+for kubeconfig_playbook in [
+    'ansible/playbooks/operator-kubeconfig.yml',
+    'ansible/playbooks/install-cluster.yml',
+]:
+    kubeconfig_playbook_text = (ROOT / kubeconfig_playbook).read_text(encoding='utf-8')
+    for kubeconfig_token in [
+        'Copy operator kubeconfig from RKE2 primary server',
+        'content: "{{ rke2_operator_kubeconfig.content | b64decode }}"',
+        'Rewrite operator kubeconfig to use VIP endpoint',
+        "regexp: 'server: https://[^\\n]+'",
+        'replace: "server: {{ rke2_operator_api_url }}"',
+        'Validate operator kubeconfig syntax',
+        '- config',
+        '- view',
+        '- --minify',
+    ]:
+        if kubeconfig_token not in kubeconfig_playbook_text:
+            errors.append(f'{kubeconfig_playbook} missing kubeconfig safety token: {kubeconfig_token}')
+    if 'operator_kubeconfig_rendered' in kubeconfig_playbook_text:
+        errors.append(f'{kubeconfig_playbook} must not render kubeconfig through a folded scalar')
+
 haproxy_template_text = (ROOT / 'ansible/roles/haproxy_keepalived/templates/haproxy.cfg.j2').read_text(
     encoding='utf-8'
 )
