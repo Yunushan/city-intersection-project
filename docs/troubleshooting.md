@@ -46,19 +46,55 @@ application chart is deployed.
 
 ## RKE2 registration wait does not finish
 
-The first RKE2 server must open local port `9345` before the VIP can forward registration traffic. The first server config intentionally omits `server:` so it can bootstrap the embedded datastore; later servers use the VIP registration address. The install role probes the local listener in a retry loop that fails with RKE2 service, journal, and socket diagnostics.
+The first RKE2 server must open local port `9345` before the VIP can forward
+registration traffic. The first server config intentionally omits `server:` so
+it can bootstrap the embedded datastore; later servers use the VIP registration
+address. The install role probes the local listener in a retry loop that fails
+with RKE2 service, journal, and socket diagnostics.
 
-The role also rejects any rendered `/etc/rancher/rke2/config.yaml` that still contains `cluster-init:` and prints an initial service/journal snapshot before waiting. If the first snapshot already shows `ExecMainStatus=2`, use the printed journal lines as the root cause.
+The role also rejects any rendered `/etc/rancher/rke2/config.yaml` that still
+contains `cluster-init:` and prints an initial service/journal snapshot before
+waiting. If the first snapshot already shows `ExecMainStatus=2`, use the
+printed journal lines as the root cause.
 
-The first server must not have a `server:` entry in `/etc/rancher/rke2/config.yaml`; later servers must have one. The role validates this before starting RKE2 to prevent the first server from trying to join through a VIP that has no healthy backend yet.
+The first server must not have a `server:` entry in
+`/etc/rancher/rke2/config.yaml`; later servers must have one. The role validates
+this before starting RKE2 to prevent the first server from trying to join
+through a VIP that has no healthy backend yet.
 
-If HAProxy is running but reports `backend rke2_registration_servers has no server available`, check the RKE2 service diagnostics from the failed play output first. HAProxy will stay down until at least one server can complete the TLS health check on `9345`.
+If HAProxy is running but reports `backend rke2_registration_servers has no
+server available`, check the RKE2 service diagnostics from the failed play
+output first. HAProxy will stay down until at least one server can complete the
+TLS health check on `9345`.
 
-If the journal shows `failed to recover v3 backend from snapshot`, `failed to find database snapshot file`, or `snapshot file doesn't exist`, the node has a stale or corrupt embedded-etcd datastore from an interrupted bootstrap. The RKE2 role scans the recent journal for that exact panic before waiting on `9345`, stops the service, archives `/var/lib/rancher/rke2/server/db` to `/var/lib/rancher/rke2/server/db.corrupt.<timestamp>`, resets the failed unit, and retries startup. Set `rke2_auto_recover_corrupt_etcd_snapshot=false` in inventory if you want to inspect and recover an established production datastore manually.
+If the journal shows `failed to recover v3 backend from snapshot`, `failed to
+find database snapshot file`, or `snapshot file doesn't exist`, the node has a
+stale or corrupt embedded-etcd datastore from an interrupted bootstrap. The RKE2
+role scans the recent journal for that exact panic before waiting on `9345`,
+stops the service, archives `/var/lib/rancher/rke2/server/db` to
+`/var/lib/rancher/rke2/server/db.corrupt.<timestamp>`, resets the failed unit,
+and retries startup. Set `rke2_auto_recover_corrupt_etcd_snapshot=false` in
+inventory if you want to inspect and recover an established production datastore
+manually.
+
+If the journal shows `Unit process ... remains running after unit stopped` with
+`failed to reconcile with local datastore: context deadline exceeded`, stale
+RKE2 child processes are still bound to local datastore or API ports after a
+failed service stop. The role stops RKE2, kills the stale service control group
+and RKE2-owned component processes, resets the unit, and retries startup. Set
+`rke2_cleanup_stale_processes=false` if you want to inspect those processes
+manually before cleanup.
 
 ## RKE2 pod IP range overlaps another network
 
-RKE2 defaults can place pods in `10.42.0.0/16` and services in `10.43.0.0/16`. This project overrides those defaults to `100.64.0.0/16` for pods, `100.65.0.0/16` for services, and `100.65.0.10` for cluster DNS. Set `pod_cidr`, `service_cidr`, `cluster_dns`, and `cluster_underlay_cidrs` in the private inventory before bootstrap if those ranges overlap your real routed networks. Changing these values after a cluster is initialized requires rebuilding the RKE2 datastore/cluster; do not change them in-place on a running production cluster.
+RKE2 defaults can place pods in `10.42.0.0/16` and services in `10.43.0.0/16`.
+This project overrides those defaults to `100.64.0.0/16` for pods,
+`100.65.0.0/16` for services, and `100.65.0.10` for cluster DNS. Set
+`pod_cidr`, `service_cidr`, `cluster_dns`, and `cluster_underlay_cidrs` in the
+private inventory before bootstrap if those ranges overlap your real routed
+networks. Changing these values after a cluster is initialized requires
+rebuilding the RKE2 datastore/cluster; do not change them in-place on a running
+production cluster.
 
 ## API server logs 502 to a pod IP
 

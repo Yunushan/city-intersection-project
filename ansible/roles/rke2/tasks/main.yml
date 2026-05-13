@@ -425,6 +425,148 @@
     - rke2_auto_recover_corrupt_etcd_snapshot | default(true) | bool
     - rke2_corrupt_etcd_snapshot_detected | default(false) | bool
 
+- name: Scan recent RKE2 journal for stale child process restart loop
+  ansible.builtin.shell: |
+    set -euo pipefail
+    stale_pattern='Unit process .* remains running after unit stopped'
+    stale_pattern="${stale_pattern}|failed to reconcile with local datastore"
+    stale_pattern="${stale_pattern}|failed to bootstrap cluster data"
+    journalctl -u "{{ rke2_service_name }}" \
+      --no-pager \
+      -n "{{ rke2_stale_process_journal_lines | default(500) }}" |
+      grep -E "${stale_pattern}"
+  args:
+    executable: /bin/bash
+  register: rke2_stale_process_scan
+  changed_when: false
+  failed_when: false
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
+
+- name: Detect stale RKE2 child process restart loop
+  ansible.builtin.set_fact:
+    rke2_stale_processes_detected: >-
+      {{
+        (
+          (
+            (rke2_initial_startup_state.stdout | default('')) |
+            regex_search(
+              'Unit process .* remains running after unit stopped|'
+              ~ 'failed to reconcile with local datastore|'
+              ~ 'failed to bootstrap cluster data'
+            )
+          ) is not none
+        ) or
+        (rke2_stale_process_scan.rc | default(1) == 0)
+      }}
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
+
+- name: Recover stale RKE2 child processes after failed startup
+  block:
+    - name: Stop RKE2 before stale process cleanup
+      ansible.builtin.systemd_service:
+        name: "{{ rke2_service_name }}"
+        state: stopped
+      failed_when: false
+
+    - name: Terminate stale RKE2 service control group
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - kill
+          - --kill-who=control-group
+          - --signal=SIGTERM
+          - "{{ rke2_service_name }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Give stale RKE2 processes time to exit
+      ansible.builtin.pause:
+        seconds: "{{ rke2_stale_process_grace_seconds | default(5) }}"
+
+    - name: Force-kill stale RKE2 service control group
+      ansible.builtin.command:
+        argv:
+          - systemctl
+          - kill
+          - --kill-who=control-group
+          - --signal=SIGKILL
+          - "{{ rke2_service_name }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Force-kill stale RKE2 component processes
+      ansible.builtin.shell: |
+        set -euo pipefail
+        patterns=(
+          '/var/lib/rancher/rke2/.*/containerd-shim'
+          '/var/lib/rancher/rke2/.*/bin/containerd'
+          '/var/lib/rancher/rke2/.*/bin/kubelet'
+          '/var/lib/rancher/rke2/.*/bin/kube-apiserver'
+          '/var/lib/rancher/rke2/.*/bin/kube-controller-manager'
+          '/var/lib/rancher/rke2/.*/bin/kube-scheduler'
+          '/var/lib/rancher/rke2/.*/bin/kube-proxy'
+          '/var/lib/rancher/rke2/.*/bin/etcd'
+          '(^|/)containerd-shim-runc-v2 .* -address /run/k3s/containerd/containerd.sock'
+          '(^|/)kube-apiserver( |$)'
+          '(^|/)etcd( |$)'
+        )
+        for pattern in "${patterns[@]}"; do
+          pkill -KILL -f "${pattern}" || true
+        done
+      args:
+        executable: /bin/bash
+      changed_when: true
+
+    - name: Reset failed RKE2 service state after stale process cleanup
+      ansible.builtin.command: systemctl reset-failed "{{ rke2_service_name }}"
+      changed_when: false
+      failed_when: false
+
+    - name: Start RKE2 after stale process cleanup
+      ansible.builtin.systemd_service:
+        name: "{{ rke2_service_name }}"
+        state: started
+      async: "{{ rke2_service_start_async_timeout | default(1200) }}"
+      poll: 0
+      changed_when: true
+
+    - name: Give RKE2 service an initial window after stale process cleanup
+      ansible.builtin.pause:
+        seconds: "{{ rke2_initial_startup_delay | default(20) }}"
+
+    - name: Read RKE2 state after stale process cleanup
+      ansible.builtin.shell: |
+        set -euo pipefail
+        service_state="$(
+          systemctl show "{{ rke2_service_name }}" \
+            --property=ActiveState \
+            --property=SubState \
+            --property=Result \
+            --property=ExecMainStatus \
+            --value | paste -sd ' ' -
+        )"
+        echo "service_state=${service_state}"
+        echo "listeners=$(ss -ltnH | awk '{print $4}' | grep -E '(:|\\])((6443)|(9345)|(2379)|(2380)|(10250))$' || true)"
+        journalctl -u "{{ rke2_service_name }}" --no-pager -n "{{ rke2_initial_journal_lines | default(40) }}"
+      args:
+        executable: /bin/bash
+      register: rke2_stale_process_recovered_state
+      changed_when: false
+      failed_when: false
+
+    - name: Show RKE2 state after stale process cleanup
+      ansible.builtin.debug:
+        msg: "{{ rke2_stale_process_recovered_state.stdout_lines | default([]) }}"
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not ansible_check_mode
+    - rke2_cleanup_stale_processes | default(true) | bool
+    - rke2_stale_processes_detected | default(false) | bool
+
 - name: Wait for local RKE2 registration endpoint
   block:
     - name: Wait for local RKE2 registration endpoint
