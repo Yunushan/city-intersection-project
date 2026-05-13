@@ -502,14 +502,14 @@
       ansible.builtin.shell: |
         set -euo pipefail
         patterns=(
-          '/var/lib/rancher/rke2/.*/containerd-shim'
-          '/var/lib/rancher/rke2/.*/bin/containerd'
-          '/var/lib/rancher/rke2/.*/bin/kubelet'
-          '/var/lib/rancher/rke2/.*/bin/kube-apiserver'
-          '/var/lib/rancher/rke2/.*/bin/kube-controller-manager'
-          '/var/lib/rancher/rke2/.*/bin/kube-scheduler'
-          '/var/lib/rancher/rke2/.*/bin/kube-proxy'
-          '/var/lib/rancher/rke2/.*/bin/etcd'
+          '[/]var/lib/rancher/rke2/.*/containerd-shim'
+          '[/]var/lib/rancher/rke2/.*/bin/containerd'
+          '[/]var/lib/rancher/rke2/.*/bin/kubelet'
+          '[/]var/lib/rancher/rke2/.*/bin/kube-apiserver'
+          '[/]var/lib/rancher/rke2/.*/bin/kube-controller-manager'
+          '[/]var/lib/rancher/rke2/.*/bin/kube-scheduler'
+          '[/]var/lib/rancher/rke2/.*/bin/kube-proxy'
+          '[/]var/lib/rancher/rke2/.*/bin/etcd'
           '(^|/)containerd-shim-runc-v2 .* -address /run/k3s/containerd/containerd.sock'
           '(^|/)kube-apiserver( |$)'
           '(^|/)etcd( |$)'
@@ -520,6 +520,7 @@
       args:
         executable: /bin/bash
       changed_when: true
+      failed_when: false
 
     - name: Reset failed RKE2 service state after stale process cleanup
       ansible.builtin.command: systemctl reset-failed "{{ rke2_service_name }}"

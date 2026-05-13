@@ -369,6 +369,7 @@ for rke2_wait_token in [
     'systemctl',
     'kill',
     '--kill-who=control-group',
+    '[/]var/lib/rancher/rke2/.*/containerd-shim',
     'containerd-shim-runc-v2 .* -address /run/k3s/containerd/containerd.sock',
     'rke2_cleanup_stale_processes',
     'ExecMainStatus',
