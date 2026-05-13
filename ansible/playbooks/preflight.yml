@@ -43,7 +43,10 @@
             )
           - cluster_vip | default('') | length > 0
           - cluster_domain | default('') | length > 0
-        fail_msg: "RKE2 requires a vaulted token, pinned rke2_version, supported ingress controller/source, cluster_vip, and cluster_domain. Upstream Traefik mode also requires rke2_traefik_chart_version."
+        fail_msg: >-
+          RKE2 requires a vaulted token, pinned rke2_version, supported ingress
+          controller/source, cluster_vip, and cluster_domain. Upstream Traefik
+          mode also requires rke2_traefik_chart_version.
       no_log: true
       when: selected_cluster_engine == 'rke2'
 
