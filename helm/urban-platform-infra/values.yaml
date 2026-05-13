@@ -42,7 +42,7 @@ namespace:
     version: latest
 ingress:
   enabled: true
-  className: nginx
+  className: traefik
   host: ''
   annotations: {}
   sslRedirect: true
@@ -98,6 +98,7 @@ networkPolicy:
   ingress:
     enabled: true
     namespaces:
+    - kube-system
     - ingress-nginx
   dns:
     enabled: true

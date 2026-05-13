@@ -16,6 +16,7 @@ helm upgrade --install urban-platform-infra . -n urban-platform --cleanup-on-fai
 Switches are handled in `values.yaml`:
 
 - `global.cluster.engine`: `rke2`, `k3s`, `microk8s`, `docker`, `raw`
+- `ingress.className`: `traefik` by default, set `nginx` for ingress-nginx. RKE2 controls the bundled Traefik version unless inventory opts into an upstream chart pin.
 - `webserver.provider`: `nginx`, `apache-httpd`, `apache-tomcat`, `traefik`
 - `databases.provider`: `cloudnative-pg` by default; use catalog profiles for alternatives
 - `observability.profile`: `elasticsearch`, `loki`, `opensearch`, `graylog`, `clickhouse`

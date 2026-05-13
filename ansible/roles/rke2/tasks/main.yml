@@ -5,9 +5,20 @@
       - (rke2_token | default('') | length) >= 16
       - (rke2_token | default('') | regex_search('^CHANGE_ME')) is none
       - (rke2_version | default('')) is match('^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$')
+      - (rke2_ingress_controller | default('traefik')) in ['traefik', 'nginx', 'ingress-nginx']
+      - (rke2_traefik_source | default('bundled')) in ['bundled', 'upstream']
+      - >-
+        (rke2_traefik_source | default('bundled')) != 'upstream'
+        or (rke2_ingress_controller | default('traefik')) == 'traefik'
+      - >-
+        (rke2_traefik_source | default('bundled')) != 'upstream'
+        or (
+          (rke2_traefik_chart_version | default('') | length) > 0
+          and (rke2_traefik_chart_version | default('') | regex_search('^CHANGE_ME')) is none
+        )
       - cluster_vip | default('') | length > 0
       - cluster_domain | default('') | length > 0
-    fail_msg: "RKE2 role requires a vaulted token, pinned rke2_version, cluster_vip, and cluster_domain."
+    fail_msg: "RKE2 role requires a vaulted token, pinned rke2_version, supported ingress controller/source, cluster_vip, and cluster_domain. Upstream Traefik mode also requires rke2_traefik_chart_version."
   no_log: true
 
 - name: Create RKE2 config directory
@@ -19,6 +30,35 @@
 - name: Set RKE2 service name
   ansible.builtin.set_fact:
     rke2_service_name: "{{ 'rke2-server' if inventory_hostname in groups['rke2_servers'] else 'rke2-agent' }}"
+    rke2_normalized_ingress_controller: >-
+      {{
+        'ingress-nginx'
+        if (rke2_ingress_controller | default('traefik')) in ['nginx', 'ingress-nginx']
+        else 'traefik'
+      }}
+    rke2_normalized_traefik_source: "{{ rke2_traefik_source | default('bundled') }}"
+
+- name: Set RKE2 ingress management facts
+  ansible.builtin.set_fact:
+    rke2_manage_bundled_traefik: >-
+      {{
+        rke2_normalized_ingress_controller == 'traefik'
+        and rke2_normalized_traefik_source == 'bundled'
+      }}
+    rke2_manage_upstream_traefik: >-
+      {{
+        rke2_normalized_ingress_controller == 'traefik'
+        and rke2_normalized_traefik_source == 'upstream'
+      }}
+    rke2_effective_ingress_controller: >-
+      {{
+        'none'
+        if (
+          rke2_normalized_ingress_controller == 'traefik'
+          and rke2_normalized_traefik_source == 'upstream'
+        )
+        else rke2_normalized_ingress_controller
+      }}
 
 - name: Gather service facts before RKE2 changes
   ansible.builtin.service_facts:
@@ -43,6 +83,53 @@
   diff: false
   register: rke2_agent_config
   when: inventory_hostname in groups.get('rke2_agents', [])
+
+- name: Create RKE2 static manifest directory
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/server/manifests
+    state: directory
+    mode: '0700'
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - rke2_manage_bundled_traefik | bool or rke2_manage_upstream_traefik | bool
+
+- name: Render RKE2 Traefik HelmChartConfig
+  ansible.builtin.template:
+    src: traefik-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml
+    mode: '0600'
+  register: rke2_traefik_config
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - rke2_manage_bundled_traefik | bool
+
+- name: Remove RKE2 Traefik HelmChartConfig when bundled Traefik is not selected
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/server/manifests/rke2-traefik-config.yaml
+    state: absent
+  register: rke2_traefik_config_absent
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not (rke2_manage_bundled_traefik | bool)
+
+- name: Render upstream Traefik HelmChart when pinned mode is selected
+  ansible.builtin.template:
+    src: traefik-helmchart.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/traefik-helmchart.yaml
+    mode: '0600'
+  register: rke2_upstream_traefik_chart
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - rke2_manage_upstream_traefik | bool
+
+- name: Remove upstream Traefik HelmChart when pinned mode is not selected
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/server/manifests/traefik-helmchart.yaml
+    state: absent
+  register: rke2_upstream_traefik_chart_absent
+  when:
+    - inventory_hostname in groups['rke2_servers']
+    - not (rke2_manage_upstream_traefik | bool)
 
 - name: Reject unsupported RKE2 cluster-init config
   ansible.builtin.command: grep -n '^cluster-init:' /etc/rancher/rke2/config.yaml
@@ -156,7 +243,13 @@
       {{
         (
           inventory_hostname in groups['rke2_servers'] and
-          rke2_server_config.changed | default(false)
+          (
+            rke2_server_config.changed | default(false) or
+            rke2_traefik_config.changed | default(false) or
+            rke2_traefik_config_absent.changed | default(false) or
+            rke2_upstream_traefik_chart.changed | default(false) or
+            rke2_upstream_traefik_chart_absent.changed | default(false)
+          )
         ) or
         (
           inventory_hostname in groups.get('rke2_agents', []) and

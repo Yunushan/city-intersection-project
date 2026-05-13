@@ -15,11 +15,12 @@ tasks:
   configure:
     vars:
       ENGINE: '{{.ENGINE | default "rke2"}}'
+      INGRESS: '{{.INGRESS | default "traefik"}}'
       WEB: '{{.WEB | default "nginx"}}'
       DB: '{{.DB | default "postgresql"}}'
       OBS: '{{.OBS | default "elasticsearch"}}'
     cmds:
-      - python3 scripts/configure.py --engine {{.ENGINE}} --webserver {{.WEB}} --database {{.DB}} --observability {{.OBS}}
+      - python3 scripts/configure.py --engine {{.ENGINE}} --ingress-controller {{.INGRESS}} --webserver {{.WEB}} --database {{.DB}} --observability {{.OBS}}
   preflight:
     vars:
       ENV: '{{.ENV | default "prod"}}'

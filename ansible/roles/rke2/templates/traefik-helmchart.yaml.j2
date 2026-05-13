@@ -1,0 +1,52 @@
+apiVersion: helm.cattle.io/v1
+kind: HelmChart
+metadata:
+  name: traefik
+  namespace: kube-system
+spec:
+  repo: "{{ rke2_traefik_chart_repo | default('https://traefik.github.io/charts') }}"
+  chart: "{{ rke2_traefik_chart_name | default('traefik') }}"
+  version: "{{ rke2_traefik_chart_version }}"
+  targetNamespace: "{{ rke2_traefik_namespace | default('kube-system') }}"
+  createNamespace: true
+  valuesContent: |-
+    deployment:
+      kind: DaemonSet
+    ingressClass:
+      enabled: true
+      isDefaultClass: true
+      name: traefik
+    providers:
+      kubernetesIngress:
+        enabled: true
+        ingressClass: traefik
+    service:
+      enabled: true
+      type: ClusterIP
+    ports:
+      web:
+        hostPort: 80
+        expose:
+          default: true
+        exposedPort: 80
+        redirections:
+          entryPoint:
+            to: websecure
+            scheme: https
+            permanent: true
+      websecure:
+        hostPort: 443
+        expose:
+          default: true
+        exposedPort: 443
+        tls:
+          enabled: true
+{% if rke2_traefik_image_repository | default('') | length > 0 or rke2_traefik_image_tag | default('') | length > 0 %}
+    image:
+{% if rke2_traefik_image_repository | default('') | length > 0 %}
+      repository: "{{ rke2_traefik_image_repository }}"
+{% endif %}
+{% if rke2_traefik_image_tag | default('') | length > 0 %}
+      tag: "{{ rke2_traefik_image_tag }}"
+{% endif %}
+{% endif %}

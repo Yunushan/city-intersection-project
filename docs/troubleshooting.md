@@ -18,14 +18,15 @@ ss -lntp | grep -E '6443|7443|9345|9346'
 curl -k https://<vip>:7443/readyz
 ```
 
-## VIP shows nginx 404
+## VIP shows ingress 404
 
-An nginx `404 Not Found` at `http://<vip>` or `https://<vip>` means the ingress
-controller is reachable, but no application or dashboard Ingress currently
-matches that host/path. Install the application chart with `make deploy` or
-install the Kubernetes Dashboard and expose it through an Ingress/port-forward.
-The cluster install target only brings up Kubernetes and ingress-nginx; it does
-not deploy the platform workload by itself.
+A `404 Not Found` from Traefik or nginx at `http://<vip>` or `https://<vip>`
+means the ingress controller is reachable, but no application or dashboard
+Ingress currently matches that host/path. Install the application chart with
+`make deploy` or install the Kubernetes Dashboard and expose it through an
+Ingress/port-forward. The cluster install target only brings up Kubernetes and
+the selected RKE2 ingress controller; it does not deploy the platform workload
+by itself.
 
 RKE2 nodes open `80/tcp` and `443/tcp` for the bundled ingress controller by
 default. The chart root Ingress enables TLS and HTTP-to-HTTPS redirect by

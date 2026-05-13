@@ -2,6 +2,7 @@ SHELL := /usr/bin/env bash
 PROJECT ?= urban-platform-infra
 ENV ?= prod
 ENGINE ?= rke2
+INGRESS ?= traefik
 WEB ?= nginx
 DB ?= postgresql
 OBS ?= elasticsearch
@@ -35,7 +36,7 @@ define require_prod_confirmation
 endef
 
 help:
-	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make <target> [ENV=prod ENGINE=rke2 WEB=nginx DB=postgresql OBS=elasticsearch TOPOLOGY=three-node-ha]\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make <target> [ENV=prod ENGINE=rke2 INGRESS=traefik WEB=nginx DB=postgresql OBS=elasticsearch TOPOLOGY=three-node-ha]\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
 validate: ## Validate YAML, Helm chart structure, scripts, and config catalogs.
 	python3 scripts/validate.py
@@ -49,7 +50,7 @@ lint: ## Run local static checks that mirror the CI static gate.
 	shellcheck $$(git ls-files '*.sh')
 
 configure: ## Update selected runtime defaults in Helm values.
-	python3 scripts/configure.py --engine $(ENGINE) --webserver $(WEB) --database $(DB) --observability $(OBS) --values $(VALUES)
+	python3 scripts/configure.py --engine $(ENGINE) --ingress-controller $(INGRESS) --webserver $(WEB) --database $(DB) --observability $(OBS) --values $(VALUES)
 
 $(ANSIBLE_COLLECTIONS_STAMP): $(ANSIBLE_COLLECTION_REQUIREMENTS)
 	mkdir -p .ansible/collections

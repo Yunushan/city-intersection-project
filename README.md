@@ -97,6 +97,7 @@ By default the Kubernetes profile deploys:
 |---|---|---|
 | Cluster | RKE2 | 3 server nodes, fixed VIP, etcd quorum |
 | Control-plane access | HAProxy + Keepalived | VIP failover on `7443` for the API and `9346` for RKE2 registration |
+| Edge ingress | RKE2-bundled Traefik | Default ingress class `traefik`; RKE2 owns the bundled Traefik version, with an optional upstream chart pin mode, and nginx/ingress-nginx remains switchable |
 | Time sync | Chrony | Installed on every node |
 | Web gateway | nginx `1.30.0` | 3 replicas, root ingress, HTTPS redirect, swappable with Apache HTTPD, Tomcat, or Traefik |
 | Application services | Sanitized `example-app-*` images | 3 replicas, PDB, HPA, anti-affinity/topology spread |
@@ -125,13 +126,13 @@ The image and port inventory is stored in [`config/services.catalog.yaml`](confi
 
 ```bash
 # Change deployment flavor without template edits
-python3 scripts/configure.py --engine k3s --webserver traefik --observability loki
+python3 scripts/configure.py --engine k3s --ingress-controller traefik --webserver traefik --observability loki
 python3 scripts/configure.py --engine microk8s --webserver apache-httpd
 python3 scripts/configure.py --database cockroachdb
-python3 scripts/configure.py --database postgresql --webserver nginx --observability elasticsearch
+python3 scripts/configure.py --database postgresql --ingress-controller nginx --webserver nginx --observability elasticsearch
 
 # Or use Makefile wrappers
-make configure ENGINE=k3s WEB=traefik DB=postgresql OBS=loki
+make configure ENGINE=k3s INGRESS=traefik WEB=traefik DB=postgresql OBS=loki
 make deploy ENV=prod
 ```
 
@@ -143,7 +144,7 @@ Supported cluster profiles are defined in [`config/cluster-profiles.yaml`](confi
 - `docker` Docker Compose/Swarm fallback
 - `raw` non-container service-install scaffolding
 
-Supported web server profiles are defined in [`config/webservers.yaml`](config/webservers.yaml): `nginx`, `apache-httpd`, `apache-tomcat`, and `traefik`.
+Supported ingress controllers are `traefik` and `nginx`; Traefik is the default RKE2 edge controller. By default `rke2_traefik_source: bundled` lets the pinned `rke2_version` choose the tested Traefik chart/image. If a deployment needs a specific upstream Traefik chart, set `rke2_traefik_source: upstream` and pin `rke2_traefik_chart_version` in the private inventory. Supported web server profiles are defined in [`config/webservers.yaml`](config/webservers.yaml): `nginx`, `apache-httpd`, `apache-tomcat`, and `traefik`.
 
 Supported database profiles are defined in [`config/databases.catalog.yaml`](config/databases.catalog.yaml), aligned with the database family list from endoflife.date. PostgreSQL is the default because your current stack already includes PostgreSQL, PostGIS, and TimescaleDB images.
 
@@ -169,7 +170,7 @@ Supported database profiles are defined in [`config/databases.catalog.yaml`](con
 1. Replace example IP addresses in `inventories/prod/hosts.yml`.
 2. Set a real VIP and DNS record in `.env` and `helm/.../values.yaml`.
 3. Vault bootstrap tokens and keepalived shared secrets before running mutating Ansible targets.
-4. Pin `rke2_version` in production inventory.
+4. Pin `rke2_version` in production inventory; keep `rke2_traefik_source: bundled` unless you intentionally need a specific upstream Traefik chart pin.
 5. Push local/private images to a registry or preload them onto all RKE2 nodes with `scripts/images/preload-rke2.sh`.
 6. Keep HTTPS redirect enabled; provide `ingress.tls.secretName` through cert-manager, External Secrets, SOPS, Sealed Secrets, or Vault before live production.
 7. Review `config/secrets.contract.yaml` and put secret values in SOPS, External Secrets, Sealed Secrets, or Vault.

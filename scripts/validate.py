@@ -23,6 +23,8 @@ REQUIRED = [
     'requirements-ci.txt', 'requirements-ci-modern.txt',
     'ansible/requirements.yml', 'ansible/requirements-modern.yml',
     '.sops.yaml.example', 'ansible/playbooks/preflight.yml',
+    'ansible/roles/rke2/templates/traefik-config.yaml.j2',
+    'ansible/roles/rke2/templates/traefik-helmchart.yaml.j2',
     'helm/urban-platform-infra/Chart.yaml', 'helm/urban-platform-infra/values.yaml',
     'helm/urban-platform-infra/templates/databases-cnpg-imagecatalogs.yaml',
     'config/services.catalog.yaml', 'config/cluster-profiles.yaml',
@@ -157,6 +159,8 @@ if values.get('secretManagement', {}).get('enabled') is not False:
 ingress_values = values.get('ingress', {})
 if ingress_values.get('tls', {}).get('enabled') is not True:
     errors.append('Ingress TLS must be enabled by default so HTTPS is available')
+if ingress_values.get('className') != 'traefik':
+    errors.append('Default ingress class must be traefik')
 for redirect_key in ['sslRedirect', 'forceSslRedirect']:
     if ingress_values.get(redirect_key) is not True:
         errors.append(f'Ingress HTTPS redirect must be enabled by default: {redirect_key}')
@@ -314,6 +318,9 @@ for preflight_token in [
     'Validate RKE2 pod and service CIDR plan',
     'cluster_underlay_cidrs',
     'cluster_dns {cluster_dns} must be inside service_cidr',
+    "rke2_ingress_controller | default('traefik')",
+    "rke2_traefik_source | default('bundled')",
+    'rke2_traefik_chart_version',
 ]:
     if preflight_token not in preflight_text:
         errors.append(f'Ansible preflight missing compatibility/safety token: {preflight_token}')
@@ -326,6 +333,8 @@ for rke2_config_token in [
     'cluster-cidr: "{{ pod_cidr | default(\'100.64.0.0/16\') }}"',
     'service-cidr: "{{ service_cidr | default(\'100.65.0.0/16\') }}"',
     'cluster-dns: "{{ cluster_dns | default(\'100.65.0.10\') }}"',
+    'ingress-controller:',
+    'rke2_effective_ingress_controller | default(\'traefik\')',
 ]:
     if rke2_config_token not in rke2_server_config_template:
         errors.append(f'RKE2 server config template missing HA bootstrap token: {rke2_config_token}')
@@ -334,6 +343,14 @@ if 'cluster-init:' in rke2_server_config_template:
 
 rke2_role_tasks_text = (ROOT / 'ansible/roles/rke2/tasks/main.yml').read_text(encoding='utf-8')
 for rke2_wait_token in [
+    "rke2_ingress_controller | default('traefik')",
+    "rke2_traefik_source | default('bundled')",
+    'rke2_effective_ingress_controller',
+    "'ingress-nginx'",
+    'Render RKE2 Traefik HelmChartConfig',
+    'rke2-traefik-config.yaml',
+    'Render upstream Traefik HelmChart when pinned mode is selected',
+    'traefik-helmchart.yaml',
     'Reject unsupported RKE2 cluster-init config',
     'Check RKE2 server join URL in rendered config',
     'Show initial RKE2 startup state',
@@ -364,11 +381,25 @@ for rke2_wait_token in [
     if rke2_wait_token not in rke2_role_tasks_text:
         errors.append(f'RKE2 role missing registration wait diagnostic token: {rke2_wait_token}')
 
+rke2_upstream_traefik_template = (
+    ROOT / 'ansible/roles/rke2/templates/traefik-helmchart.yaml.j2'
+).read_text(encoding='utf-8')
+for rke2_upstream_traefik_token in [
+    'kind: HelmChart',
+    "rke2_traefik_chart_repo | default('https://traefik.github.io/charts')",
+    'version: "{{ rke2_traefik_chart_version }}"',
+    'kind: DaemonSet',
+    'hostPort: 80',
+    'hostPort: 443',
+    'rke2_traefik_image_tag',
+]:
+    if rke2_upstream_traefik_token not in rke2_upstream_traefik_template:
+        errors.append(f'Upstream Traefik template missing pinning token: {rke2_upstream_traefik_token}')
+
 workload_template_text = (ROOT / 'helm/urban-platform-infra/templates/workloads.yaml').read_text(encoding='utf-8')
 webserver_template_text = (ROOT / 'helm/urban-platform-infra/templates/webserver.yaml').read_text(encoding='utf-8')
 for ingress_template_token in [
-    'nginx.ingress.kubernetes.io/ssl-redirect',
-    'nginx.ingress.kubernetes.io/force-ssl-redirect',
+    'include "cip.ingressAnnotations"',
     'secretName: {{ $.Values.ingress.tls.secretName | quote }}',
 ]:
     if ingress_template_token not in workload_template_text:
@@ -378,7 +409,7 @@ for webserver_ingress_token in [
     'name: webserver',
     'path: {{ .Values.webserver.ingress.path | default "/" | quote }}',
     'number: {{ .Values.webserver.ingress.servicePort | default 80 }}',
-    'nginx.ingress.kubernetes.io/ssl-redirect',
+    'include "cip.ingressAnnotations"',
 ]:
     if webserver_ingress_token not in webserver_template_text:
         errors.append(f'Webserver template missing root HTTPS ingress token: {webserver_ingress_token}')
@@ -400,6 +431,8 @@ if 'CONFIRM_PROD' not in makefile_text:
 if 'bootstrap-check' not in makefile_text or 'install-cluster-check' not in makefile_text:
     errors.append('Makefile must expose Ansible check-mode targets')
 for makefile_helm_token in [
+    'INGRESS ?= traefik',
+    '--ingress-controller $(INGRESS)',
     'install-helm:',
     'HELM_INSTALL_SCRIPT',
     'install-helmfile:',

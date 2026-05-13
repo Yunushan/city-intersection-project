@@ -251,7 +251,11 @@
           "type": "boolean"
         },
         "className": {
-          "type": "string"
+          "type": "string",
+          "enum": [
+            "traefik",
+            "nginx"
+          ]
         },
         "host": {
           "type": "string"

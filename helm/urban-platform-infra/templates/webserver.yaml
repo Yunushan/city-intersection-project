@@ -92,12 +92,7 @@ metadata:
   name: webserver
   namespace: {{ include "cip.namespace" . }}
   annotations:
-    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
-    nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.ingress.sslRedirect | default true | quote }}
-    nginx.ingress.kubernetes.io/force-ssl-redirect: {{ .Values.ingress.forceSslRedirect | default true | quote }}
-    {{- with .Values.ingress.annotations }}
-    {{- toYaml . | nindent 4 }}
-    {{- end }}
+    {{- include "cip.ingressAnnotations" . | nindent 4 }}
 spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
   {{- if .Values.ingress.tls.enabled }}

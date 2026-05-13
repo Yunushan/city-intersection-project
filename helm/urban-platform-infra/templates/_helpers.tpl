@@ -51,6 +51,23 @@ default
 {{- end -}}
 {{- end -}}
 
+{{- define "cip.ingressAnnotations" -}}
+{{- $className := .Values.ingress.className | default "traefik" -}}
+{{- if eq $className "nginx" }}
+nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+nginx.ingress.kubernetes.io/ssl-redirect: {{ .Values.ingress.sslRedirect | default true | quote }}
+nginx.ingress.kubernetes.io/force-ssl-redirect: {{ .Values.ingress.forceSslRedirect | default true | quote }}
+{{- else if eq $className "traefik" }}
+traefik.ingress.kubernetes.io/router.entrypoints: "websecure"
+{{- if .Values.ingress.tls.enabled }}
+traefik.ingress.kubernetes.io/router.tls: "true"
+{{- end }}
+{{- end }}
+{{- with .Values.ingress.annotations }}
+{{- toYaml . }}
+{{- end }}
+{{- end -}}
+
 {{- define "cip.podSpecDefaults" -}}
 serviceAccountName: {{ include "cip.serviceAccountName" . }}
 automountServiceAccountToken: {{ .Values.global.serviceAccount.automountServiceAccountToken | default false }}

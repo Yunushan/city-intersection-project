@@ -138,6 +138,12 @@ all:
     rke2_registration_vip_port: 9346
     rke2_token: "<vaulted-rke2-token>"
     rke2_version: "v<major>.<minor>.<patch>+rke2r<revision>"
+    rke2_ingress_controller: traefik
+    rke2_traefik_source: bundled
+    # Optional: use a specific upstream Traefik chart instead of the RKE2-bundled chart.
+    # rke2_traefik_source: upstream
+    # rke2_traefik_chart_version: "<traefik-chart-version>"
+    # rke2_traefik_image_tag: "<traefik-image-tag>"
     keepalived_auth_pass: "<vaulted-keepalived-pass>"
     keepalived_interface: <network-interface>
     pod_cidr: 100.64.0.0/16
@@ -176,6 +182,12 @@ openssl rand -hex 32
 ```
 
 Encrypt production inventory or variable files with Ansible Vault or SOPS before storing them anywhere shared.
+
+Leave `rke2_traefik_source: bundled` for the default production path. In bundled
+mode, the pinned `rke2_version` controls the tested Traefik chart and image. Use
+`rke2_traefik_source: upstream` only when you intentionally need a specific
+upstream Traefik chart version and the nodes can reach that chart repository or
+your internal mirror.
 
 ## Bootstrap RKE2
 
@@ -226,6 +238,7 @@ global:
     - registry-credentials
 
 ingress:
+  className: traefik
   # Empty host matches the local VIP/IP in a lab. Use a real FQDN in production.
   host: ""
   tls:

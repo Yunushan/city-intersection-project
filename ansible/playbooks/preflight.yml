@@ -30,9 +30,20 @@
           - (rke2_token | default('') | length) >= 16
           - (rke2_token | default('') | regex_search('^CHANGE_ME')) is none
           - (rke2_version | default('')) is match('^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$')
+          - (rke2_ingress_controller | default('traefik')) in ['traefik', 'nginx', 'ingress-nginx']
+          - (rke2_traefik_source | default('bundled')) in ['bundled', 'upstream']
+          - >-
+            (rke2_traefik_source | default('bundled')) != 'upstream'
+            or (rke2_ingress_controller | default('traefik')) == 'traefik'
+          - >-
+            (rke2_traefik_source | default('bundled')) != 'upstream'
+            or (
+              (rke2_traefik_chart_version | default('') | length) > 0
+              and (rke2_traefik_chart_version | default('') | regex_search('^CHANGE_ME')) is none
+            )
           - cluster_vip | default('') | length > 0
           - cluster_domain | default('') | length > 0
-        fail_msg: "RKE2 requires a vaulted token, pinned rke2_version, cluster_vip, and cluster_domain."
+        fail_msg: "RKE2 requires a vaulted token, pinned rke2_version, supported ingress controller/source, cluster_vip, and cluster_domain. Upstream Traefik mode also requires rke2_traefik_chart_version."
       no_log: true
       when: selected_cluster_engine == 'rke2'
 

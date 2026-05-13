@@ -14,10 +14,20 @@ HAProxy exposes:
 - `7443` Kubernetes API VIP frontend, forwarding to each server node on `6443`
 - `9346` RKE2 registration VIP frontend, forwarding to each server node on `9345`
 
-RKE2 ingress-nginx owns web traffic directly on each node:
+RKE2-bundled Traefik owns web traffic directly on each node by default:
 
 - `80` HTTP, used only as the ingress redirect entrypoint
 - `443` HTTPS, the default application entrypoint
+
+Keep `rke2_traefik_source: bundled` for the production default. In that mode,
+the pinned `rke2_version` controls the bundled Traefik chart and image version.
+If an end user needs a specific upstream Traefik chart, set
+`rke2_traefik_source: upstream` and pin `rke2_traefik_chart_version`; the role
+then disables the bundled RKE2 ingress controller and installs that chart through
+the RKE2 Helm controller.
+
+Set `rke2_ingress_controller: nginx` in inventory and `ingress.className=nginx`
+in Helm values if a deployment must stay on ingress-nginx.
 
 The non-default API and registration VIP frontend ports avoid binding conflicts because HAProxy and RKE2 run on the same three nodes.
 If you move HAProxy and Keepalived to separate load-balancer nodes, you can override the VIP port variables back to the standard RKE2 ports.

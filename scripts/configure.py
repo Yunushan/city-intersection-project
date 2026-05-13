@@ -17,6 +17,7 @@ def main():
     parser = argparse.ArgumentParser(description='Switch urban-platform-infra defaults without editing templates.')
     parser.add_argument('--engine', choices=['rke2','k3s','microk8s','docker','raw'])
     parser.add_argument('--webserver', choices=['nginx','apache-httpd','apache-tomcat','traefik'])
+    parser.add_argument('--ingress-controller', choices=['traefik','nginx'])
     parser.add_argument('--database')
     parser.add_argument('--observability', choices=['elasticsearch','loki','opensearch','graylog','clickhouse','grafana'])
     parser.add_argument('--values', default=str(ROOT / 'helm/urban-platform-infra/values.yaml'))
@@ -31,7 +32,8 @@ def main():
         values.setdefault('webserver', {})['provider'] = args.webserver
         for name, provider in values.get('webserver', {}).get('providers', {}).items():
             provider['enabled'] = name == args.webserver
-        values.setdefault('ingress', {})['className'] = 'traefik' if args.webserver == 'traefik' else 'nginx'
+    if args.ingress_controller:
+        values.setdefault('ingress', {})['className'] = args.ingress_controller
     if args.database:
         # PostgreSQL-compatible databases use CloudNativePG; other databases are represented as external/operator profiles.
         if args.database in ['postgresql','postgres','postgis','timescaledb']:

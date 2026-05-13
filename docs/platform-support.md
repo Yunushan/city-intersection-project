@@ -7,6 +7,7 @@
 - Node OS: Ubuntu 24.04
 - Operator compatibility lane: Python 3.11 with ansible-core 2.14.18
 - Modern compatibility lane: Python 3.12, 3.13, and 3.14 with ansible-core 2.20.5
+- Ingress controller: RKE2-bundled Traefik by default, switchable to a pinned upstream Traefik chart or ingress-nginx
 - Webserver: nginx
 - Database profile: PostgreSQL/PostGIS/TimescaleDB via CloudNativePG
 - Observability profile: Elastic ECK + Prometheus/Grafana + OpenTelemetry Collector
