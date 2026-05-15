@@ -56,14 +56,31 @@ generate_rke2_token() {
   return 1
 }
 
+generate_keepalived_auth_pass() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 4
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import secrets; print(secrets.token_hex(4))'
+    return 0
+  fi
+  return 1
+}
+
+ssh_options_for_node() {
+  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
+    printf '%s\n' "-i"
+    printf '%s\n' "${MIGRATION_SSH_KEY}"
+  fi
+}
+
 discover_remote_rke2_token() {
   local node="$1"
   local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
   local ssh_options=()
 
-  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
-    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
-  fi
+  mapfile -t ssh_options < <(ssh_options_for_node)
 
   ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_TOKEN' 2>/dev/null || true
 if ! sudo -n true 2>/dev/null; then
@@ -83,14 +100,39 @@ fi
 REMOTE_DISCOVER_TOKEN
 }
 
+discover_remote_cluster_vip() {
+  local node="$1"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local ssh_options=()
+
+  mapfile -t ssh_options < <(ssh_options_for_node)
+
+  ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_CLUSTER_VIP' 2>/dev/null || true
+if ! sudo -n true 2>/dev/null; then
+  exit 0
+fi
+if [ -s /etc/rancher/rke2/config.yaml ]; then
+  sudo awk '
+    /^server:/ {
+      value=$0
+      sub(/^[^:]+:[[:space:]]*/, "", value)
+      gsub(/^"|"$/, "", value)
+      sub(/^https:\/\//, "", value)
+      sub(/:.*/, "", value)
+      print value
+      exit
+    }
+  ' /etc/rancher/rke2/config.yaml
+fi
+REMOTE_DISCOVER_CLUSTER_VIP
+}
+
 discover_remote_rke2_version() {
   local node="$1"
   local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
   local ssh_options=()
 
-  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
-    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
-  fi
+  mapfile -t ssh_options < <(ssh_options_for_node)
 
   ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_VERSION' 2>/dev/null || true
 if command -v rke2 >/dev/null 2>&1; then
@@ -108,9 +150,7 @@ discover_remote_cluster_domain() {
   local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
   local ssh_options=()
 
-  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
-    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
-  fi
+  mapfile -t ssh_options < <(ssh_options_for_node)
 
   ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_DOMAIN' 2>/dev/null || true
 if ! sudo -n true 2>/dev/null; then
@@ -120,6 +160,70 @@ if [ -s /etc/rancher/rke2/config.yaml ]; then
   sudo awk -F': *' '/^cluster-domain:/ {print $2; exit}' /etc/rancher/rke2/config.yaml
 fi
 REMOTE_DISCOVER_DOMAIN
+}
+
+discover_remote_keepalived_auth_pass() {
+  local node="$1"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local ssh_options=()
+
+  mapfile -t ssh_options < <(ssh_options_for_node)
+
+  ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_KEEPALIVED_AUTH' 2>/dev/null || true
+if ! sudo -n true 2>/dev/null; then
+  exit 0
+fi
+if [ -s /etc/keepalived/keepalived.conf ]; then
+  sudo awk '/^[[:space:]]*auth_pass[[:space:]]+/ {print $2; exit}' /etc/keepalived/keepalived.conf
+fi
+REMOTE_DISCOVER_KEEPALIVED_AUTH
+}
+
+discover_remote_keepalived_interface() {
+  local node="$1"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local ssh_options=()
+
+  mapfile -t ssh_options < <(ssh_options_for_node)
+
+  ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_KEEPALIVED_INTERFACE' 2>/dev/null || true
+if ! sudo -n true 2>/dev/null; then
+  exit 0
+fi
+if [ -s /etc/keepalived/keepalived.conf ]; then
+  interface="$(sudo awk '/^[[:space:]]*interface[[:space:]]+/ {print $2; exit}' /etc/keepalived/keepalived.conf)"
+  if [ -n "${interface}" ]; then
+    echo "${interface}"
+    exit 0
+  fi
+fi
+ip route show default 2>/dev/null | awk '{print $5; exit}'
+REMOTE_DISCOVER_KEEPALIVED_INTERFACE
+}
+
+run_cluster_repair() {
+  extra_args=()
+  if [ -n "${ANSIBLE_ARGS:-}" ]; then
+    # shellcheck disable=SC2206
+    extra_args=(${ANSIBLE_ARGS})
+  fi
+
+  echo "Kubernetes API is not ready; reconciling bootstrap and RKE2 from ${INVENTORY_PATH}."
+  ANSIBLE_CONFIG="${ANSIBLE_CONFIG_PATH}" \
+    "${ANSIBLE_PLAYBOOK_BIN}" \
+    -i "${INVENTORY_PATH}" \
+    ansible/playbooks/bootstrap.yml \
+    -e "cluster_engine=${ENGINE}" \
+    -e "deployment_environment=${ENVIRONMENT}" \
+    "${extra_args[@]}"
+
+  ANSIBLE_CONFIG="${ANSIBLE_CONFIG_PATH}" \
+    "${ANSIBLE_PLAYBOOK_BIN}" \
+    -i "${INVENTORY_PATH}" \
+    ansible/playbooks/install-cluster.yml \
+    -e "cluster_engine=${ENGINE}" \
+    -e "deployment_environment=${ENVIRONMENT}" \
+    "${extra_args[@]}"
 }
 
 kubernetes_api_ready() {
@@ -256,8 +360,33 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
   fi
 
   explicit_cluster_vip="${MIGRATION_CLUSTER_VIP:-${CLUSTER_VIP:-}}"
-  cluster_vip="${explicit_cluster_vip:-${first_rke2_node}}"
-  if [ -n "${explicit_cluster_vip}" ]; then
+  discovered_cluster_vip=""
+  if [ -z "${explicit_cluster_vip}" ]; then
+    for node in "${rke2_nodes[@]}"; do
+      node="${node//[[:space:]]/}"
+      if [ -z "${node}" ]; then
+        continue
+      fi
+      discovered_cluster_vip="$(discover_remote_cluster_vip "${node}")"
+      if [ -n "${discovered_cluster_vip}" ]; then
+        break
+      fi
+    done
+  fi
+  cluster_vip="${explicit_cluster_vip:-${discovered_cluster_vip:-${first_rke2_node}}}"
+  cluster_vip_matches_node=false
+  for node in "${rke2_nodes[@]}"; do
+    node="${node//[[:space:]]/}"
+    if [ "${cluster_vip}" = "${node}" ]; then
+      cluster_vip_matches_node=true
+      break
+    fi
+  done
+  use_load_balancers=false
+  if [ -n "${explicit_cluster_vip}" ] || { [ -n "${discovered_cluster_vip}" ] && [ "${cluster_vip_matches_node}" != "true" ]; }; then
+    use_load_balancers=true
+  fi
+  if [ -n "${explicit_cluster_vip}" ] || [ -n "${discovered_cluster_vip}" ]; then
     kubernetes_api_port="${MIGRATION_KUBERNETES_API_VIP_PORT:-${KUBERNETES_API_VIP_PORT:-7443}}"
   else
     kubernetes_api_port="${MIGRATION_KUBERNETES_API_VIP_PORT:-${KUBERNETES_API_VIP_PORT:-6443}}"
@@ -303,6 +432,29 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     exit 1
   fi
 
+  keepalived_auth_pass="${MIGRATION_KEEPALIVED_AUTH_PASS:-${KEEPALIVED_AUTH_PASS:-}}"
+  keepalived_auth_source="provided"
+  keepalived_interface="${MIGRATION_KEEPALIVED_INTERFACE:-${KEEPALIVED_INTERFACE:-}}"
+  if [ "${use_load_balancers}" = "true" ]; then
+    if [ -z "${keepalived_auth_pass}" ]; then
+      keepalived_auth_pass="$(discover_remote_keepalived_auth_pass "${first_rke2_node}")"
+      keepalived_auth_source="discovered"
+    fi
+    if [ -z "${keepalived_auth_pass}" ]; then
+      keepalived_auth_pass="$(generate_keepalived_auth_pass)"
+      keepalived_auth_source="generated"
+    fi
+    if [ -z "${keepalived_auth_pass}" ]; then
+      echo "Could not discover or generate a Keepalived auth password for the temporary inventory." >&2
+      echo "Install openssl or python3 on the operator, or export MIGRATION_KEEPALIVED_AUTH_PASS before running this target." >&2
+      exit 1
+    fi
+    if [ -z "${keepalived_interface}" ]; then
+      keepalived_interface="$(discover_remote_keepalived_interface "${first_rke2_node}")"
+    fi
+    keepalived_interface="${keepalived_interface:-eth0}"
+  fi
+
   {
     printf 'all:\n'
     printf '  vars:\n'
@@ -314,6 +466,10 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     printf '    rke2_token: %s\n' "$(yaml_quote "${rke2_token}")"
     printf '    rke2_version: %s\n' "$(yaml_quote "${rke2_version}")"
     printf '    kubernetes_api_vip_port: %s\n' "${kubernetes_api_port}"
+    if [ "${use_load_balancers}" = "true" ]; then
+      printf '    keepalived_auth_pass: %s\n' "$(yaml_quote "${keepalived_auth_pass}")"
+      printf '    keepalived_interface: %s\n' "$(yaml_quote "${keepalived_interface}")"
+    fi
     printf '  children:\n'
     printf '    cluster_nodes:\n'
     printf '      children:\n'
@@ -335,23 +491,32 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     printf '    rke2_agents:\n'
     printf '      hosts: {}\n'
     printf '    load_balancers:\n'
-    printf '      hosts:\n'
-    index=1
-    for node in "${rke2_nodes[@]}"; do
-      node="${node//[[:space:]]/}"
-      if [ -z "${node}" ]; then
-        continue
-      fi
-      printf '        import-rke2-%02d: {}\n' "${index}"
-      index=$((index + 1))
-    done
+    if [ "${use_load_balancers}" = "true" ]; then
+      printf '      hosts:\n'
+      index=1
+      for node in "${rke2_nodes[@]}"; do
+        node="${node//[[:space:]]/}"
+        if [ -z "${node}" ]; then
+          continue
+        fi
+        printf '        import-rke2-%02d: {}\n' "${index}"
+        index=$((index + 1))
+      done
+    else
+      printf '      hosts: {}\n'
+    fi
   } > "${FALLBACK_INVENTORY_PATH}"
   chmod 0600 "${FALLBACK_INVENTORY_PATH}" 2>/dev/null || true
   INVENTORY_PATH="${FALLBACK_INVENTORY_PATH}"
   echo "Generated temporary operator inventory from MIGRATION_RKE2_NODES: ${INVENTORY_PATH}"
   echo "Temporary inventory RKE2 inputs: token ${rke2_token_source}, version ${rke2_version_source}, cluster domain ${cluster_domain:+ready}."
+  if [ "${use_load_balancers}" = "true" ]; then
+    echo "Temporary inventory HA inputs: cluster VIP ready, Keepalived auth ${keepalived_auth_source}, interface ${keepalived_interface}."
+  else
+    echo "Temporary inventory HA inputs: no cluster VIP detected; using direct node API endpoints."
+  fi
   echo "Operator kubeconfig endpoint candidates will use port ${kubernetes_api_port}"
-  if [ -n "${explicit_cluster_vip}" ]; then
+  if [ -n "${explicit_cluster_vip}" ] || [ -n "${discovered_cluster_vip}" ]; then
     endpoint_candidates=("${cluster_vip}")
   else
     endpoint_candidates=("${rke2_nodes[@]}")
@@ -384,7 +549,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
       if [ -z "${tunnel_node}" ]; then
         continue
       fi
-      if ! tunnel_port="$(start_kubernetes_api_tunnel "${tunnel_node}" "${kubernetes_api_port}")"; then
+      if ! tunnel_port="$(start_kubernetes_api_tunnel "${tunnel_node}" "6443")"; then
         echo "Could not open an SSH tunnel through ${tunnel_node}; trying the next node." >&2
         continue
       fi
@@ -394,7 +559,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
         break
       fi
       echo "Kubernetes API was not ready through SSH tunnel via ${tunnel_node}; trying the next node." >&2
-      stop_kubernetes_api_tunnel "${tunnel_node}" "${kubernetes_api_port}" "${tunnel_port}"
+      stop_kubernetes_api_tunnel "${tunnel_node}" "6443" "${tunnel_port}"
     done
 
     if [ -z "${selected_endpoint}" ]; then
@@ -406,6 +571,12 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
           show_remote_rke2_diagnostics "${diagnostic_node}"
         fi
       done
+      if [ "${MIGRATION_AUTO_REPAIR_CLUSTER:-false}" = "true" ]; then
+        run_cluster_repair
+        export MIGRATION_AUTO_REPAIR_CLUSTER=false
+        echo "Retrying operator kubeconfig after automatic cluster reconciliation."
+        exec "$0"
+      fi
       exit 1
     fi
   fi

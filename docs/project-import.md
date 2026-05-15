@@ -75,7 +75,10 @@ version, and cluster domain when available, and generates a private token only
 for fresh installs where RKE2 is not already installed. It honors
 `MIGRATION_SSH_USER` and `MIGRATION_SSH_KEY`; use `MIGRATION_RKE2_VERSION` or
 `MIGRATION_CLUSTER_DOMAIN` only when installing onto fresh nodes where those
-values cannot be discovered yet.
+values cannot be discovered yet. For `import-auto`, if the Kubernetes API is
+listening but not ready, the same temporary inventory is used to reconcile the
+bootstrap and RKE2 playbooks once, then kubeconfig repair is retried. Set
+`MIGRATION_AUTO_REPAIR_CLUSTER=false` to disable that repair pass.
 
 Image migration has three modes:
 

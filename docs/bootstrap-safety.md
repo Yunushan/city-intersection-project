@@ -34,7 +34,8 @@ For import recovery runs, `make import-auto` can generate a temporary private
 inventory from `MIGRATION_RKE2_NODES` and discover the existing RKE2 token,
 installed RKE2 version, and cluster domain over SSH. Fresh clusters still need a
 deliberately pinned RKE2 version; the automation will not select a moving latest
-version.
+version. The import helper can also discover or generate temporary Keepalived
+inputs when it must reconcile the HA/RKE2 layer before continuing.
 
 Do not commit real inventory, tokens, VIPs, node addresses, or disclosure-related infrastructure names.
 
