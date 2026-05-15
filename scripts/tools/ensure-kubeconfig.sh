@@ -48,7 +48,7 @@ normalize_rke2_version() {
   local value="$1"
   printf '%s\n' "${value}" \
     | tr -d '\r' \
-    | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+\+rke2r[0-9]+' \
+    | sed -nE 's/.*v?([0-9]+\.[0-9]+\.[0-9]+)[+-](rke2r[0-9]+).*/v\1+\2/p' \
     | head -n 1 || true
 }
 
@@ -518,7 +518,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
   chmod 0600 "${FALLBACK_INVENTORY_PATH}" 2>/dev/null || true
   INVENTORY_PATH="${FALLBACK_INVENTORY_PATH}"
   echo "Generated temporary operator inventory from MIGRATION_RKE2_NODES: ${INVENTORY_PATH}"
-  echo "Temporary inventory RKE2 inputs: token ${rke2_token_source}, version ${rke2_version_source}, cluster domain ${cluster_domain:+ready}."
+  echo "Temporary inventory RKE2 inputs: token ${rke2_token_source}, version ${rke2_version_source} (${rke2_version}), cluster domain ${cluster_domain:+ready}."
   if [ "${use_load_balancers}" = "true" ]; then
     echo "Temporary inventory HA inputs: cluster VIP ready, Keepalived auth ${keepalived_auth_source}, interface ${keepalived_interface}."
   else
