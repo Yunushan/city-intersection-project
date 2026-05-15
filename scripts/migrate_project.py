@@ -227,6 +227,31 @@ def local_import_image(args: argparse.Namespace, record: import_project.ServiceR
     return f"urban-platform-import/{k8s_name(record.name)}:{args.image_tag}"
 
 
+def docker_image_exists(image: str) -> bool:
+    return subprocess.run(["docker", "image", "inspect", image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def pullable_image(image: import_project.ImageRef) -> bool:
+    if image.variable:
+        return False
+    first_segment = image.repository.split("/", 1)[0]
+    return "/" in image.repository or "." in first_segment or ":" in first_segment
+
+
+def ensure_source_image(record: import_project.ServiceRecord) -> bool:
+    if record.image is None:
+        return False
+    source = record.image.display
+    if docker_image_exists(source):
+        return True
+    if pullable_image(record.image):
+        print(f"Source image {source} is not local; pulling it before import.")
+        pull = subprocess.run(["docker", "pull", source])
+        return pull.returncode == 0
+    print(f"Source image {source} is not local and does not look pullable; skipping {record.name}.")
+    return False
+
+
 def preload_archives_to_nodes(args: argparse.Namespace, archive_dir: Path) -> None:
     nodes = [node.strip() for node in args.rke2_nodes.split(",") if node.strip()]
     if not nodes:
@@ -591,25 +616,42 @@ def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: li
     archive_dir = Path(args.image_output_dir).expanduser()
     if args.image_mode == "preload":
         archive_dir.mkdir(parents=True, exist_ok=True)
+    skipped: list[str] = []
+    failed: list[str] = []
     for record, service, build in candidates:
         target_image = local_import_image(args, record)
         compose_path = relative_compose_file(project_path, record.file)
-        if build:
-            if isinstance(build, dict):
-                context = compose_path.parent / str(build.get("context", "."))
-                dockerfile = str(build.get("dockerfile", "Dockerfile"))
-            else:
-                context = compose_path.parent / str(build)
-                dockerfile = "Dockerfile"
-            run_command(["docker", "build", "-t", target_image, "-f", dockerfile, "."], cwd=context.resolve())
-        elif record.image:
-            run_command(["docker", "tag", record.image.display, target_image])
-        if args.image_mode == "registry":
-            run_command(["docker", "push", target_image])
-        elif args.image_mode == "preload":
-            run_command(["docker", "save", "-o", str(archive_dir / image_archive_name(record)), target_image])
+        try:
+            if build:
+                if isinstance(build, dict):
+                    context = compose_path.parent / str(build.get("context", "."))
+                    dockerfile = str(build.get("dockerfile", "Dockerfile"))
+                else:
+                    context = compose_path.parent / str(build)
+                    dockerfile = "Dockerfile"
+                run_command(["docker", "build", "-t", target_image, "-f", dockerfile, "."], cwd=context.resolve())
+            elif record.image:
+                if not ensure_source_image(record):
+                    skipped.append(f"{record.file}::{record.name} ({record.image.display})")
+                    continue
+                run_command(["docker", "tag", record.image.display, target_image])
+            if args.image_mode == "registry":
+                run_command(["docker", "push", target_image])
+            elif args.image_mode == "preload":
+                run_command(["docker", "save", "-o", str(archive_dir / image_archive_name(record)), target_image])
+        except subprocess.CalledProcessError as exc:
+            failed.append(f"{record.file}::{record.name} ({exc.cmd})")
     if args.image_mode == "preload":
         preload_archives_to_nodes(args, archive_dir)
+    if skipped:
+        print("Skipped image candidates:")
+        for item in skipped:
+            print(f"- {item}")
+    if failed:
+        print("Failed image candidates:")
+        for item in failed:
+            print(f"- {item}")
+        raise SystemExit(f"Image migration completed with {len(failed)} failed candidate(s).")
 
 
 def stage_databases(args: argparse.Namespace, service_pairs: list[tuple[import_project.ServiceRecord, dict[str, Any]]]) -> None:
