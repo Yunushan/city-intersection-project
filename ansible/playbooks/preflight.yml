@@ -24,30 +24,65 @@
           - selected_cluster_engine not in ['rke2', 'k3s'] or (groups.get('rke2_servers', []) | length) >= 1
         fail_msg: "Inventory must define cluster_nodes and at least one rke2_servers host for Kubernetes engines."
 
+    - name: Build safe RKE2 production input validation summary
+      ansible.builtin.set_fact:
+        rke2_production_input_errors: >-
+          {{
+            []
+            + (
+              ['rke2_token must be set to a non-placeholder value with at least 16 characters']
+              if ((rke2_token | default('') | length) < 16 or (rke2_token | default('') | regex_search('^CHANGE_ME')) is not none)
+              else []
+            )
+            + (
+              ['rke2_version must look like v1.33.5+rke2r1']
+              if not ((rke2_version | default('')) is match('^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$'))
+              else []
+            )
+            + (
+              ['rke2_ingress_controller must be traefik, nginx, or ingress-nginx']
+              if (rke2_ingress_controller | default('traefik')) not in ['traefik', 'nginx', 'ingress-nginx']
+              else []
+            )
+            + (
+              ['rke2_traefik_source must be bundled or upstream']
+              if (rke2_traefik_source | default('bundled')) not in ['bundled', 'upstream']
+              else []
+            )
+            + (
+              ['upstream Traefik requires rke2_ingress_controller=traefik']
+              if (
+                (rke2_traefik_source | default('bundled')) == 'upstream'
+                and (rke2_ingress_controller | default('traefik')) != 'traefik'
+              )
+              else []
+            )
+            + (
+              ['upstream Traefik requires rke2_traefik_chart_version']
+              if (
+                (rke2_traefik_source | default('bundled')) == 'upstream'
+                and (
+                  (rke2_traefik_chart_version | default('') | length) == 0
+                  or (rke2_traefik_chart_version | default('') | regex_search('^CHANGE_ME')) is not none
+                )
+              )
+              else []
+            )
+            + (['cluster_vip must be set'] if (cluster_vip | default('') | length) == 0 else [])
+            + (['cluster_domain must be set'] if (cluster_domain | default('') | length) == 0 else [])
+          }}
+      no_log: true
+      when: selected_cluster_engine == 'rke2'
+
     - name: Validate RKE2 production inputs
       ansible.builtin.assert:
         that:
-          - (rke2_token | default('') | length) >= 16
-          - (rke2_token | default('') | regex_search('^CHANGE_ME')) is none
-          - (rke2_version | default('')) is match('^v[0-9]+\\.[0-9]+\\.[0-9]+\\+rke2r[0-9]+$')
-          - (rke2_ingress_controller | default('traefik')) in ['traefik', 'nginx', 'ingress-nginx']
-          - (rke2_traefik_source | default('bundled')) in ['bundled', 'upstream']
-          - >-
-            (rke2_traefik_source | default('bundled')) != 'upstream'
-            or (rke2_ingress_controller | default('traefik')) == 'traefik'
-          - >-
-            (rke2_traefik_source | default('bundled')) != 'upstream'
-            or (
-              (rke2_traefik_chart_version | default('') | length) > 0
-              and (rke2_traefik_chart_version | default('') | regex_search('^CHANGE_ME')) is none
-            )
-          - cluster_vip | default('') | length > 0
-          - cluster_domain | default('') | length > 0
+          - rke2_production_input_errors | length == 0
         fail_msg: >-
-          RKE2 requires a vaulted token, pinned rke2_version, supported ingress
-          controller/source, cluster_vip, and cluster_domain. Upstream Traefik
-          mode also requires rke2_traefik_chart_version.
-      no_log: true
+          RKE2 production input validation failed: {{
+          rke2_production_input_errors | join('; ') }}.
+          Put these values in a private inventory or pass them through
+          ANSIBLE_ARGS. Secret values are intentionally not printed.
       when: selected_cluster_engine == 'rke2'
 
     - name: Build cluster node IP list for CIDR validation

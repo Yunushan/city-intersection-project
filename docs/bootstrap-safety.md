@@ -30,6 +30,12 @@ Production inventory must replace every placeholder:
 - `keepalived_auth_pass` must be set through a secret workflow.
 - Every host must define `ansible_host`; `node_ip` should be explicit when it differs.
 
+For import recovery runs, `make import-auto` can generate a temporary private
+inventory from `MIGRATION_RKE2_NODES` and discover the existing RKE2 token,
+installed RKE2 version, and cluster domain over SSH. Fresh clusters still need a
+deliberately pinned RKE2 version; the automation will not select a moving latest
+version.
+
 Do not commit real inventory, tokens, VIPs, node addresses, or disclosure-related infrastructure names.
 
 ## Ansible Safety Defaults

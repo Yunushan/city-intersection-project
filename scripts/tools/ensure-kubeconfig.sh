@@ -37,6 +37,91 @@ write_kubeconfig_from_node() {
   rm -f "${tmp_kubeconfig}"
 }
 
+yaml_quote() {
+  local value="$1"
+  printf "'"
+  printf '%s' "${value}" | sed "s/'/''/g"
+  printf "'"
+}
+
+generate_rke2_token() {
+  if command -v openssl >/dev/null 2>&1; then
+    openssl rand -hex 32
+    return 0
+  fi
+  if command -v python3 >/dev/null 2>&1; then
+    python3 -c 'import secrets; print(secrets.token_hex(32))'
+    return 0
+  fi
+  return 1
+}
+
+discover_remote_rke2_token() {
+  local node="$1"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local ssh_options=()
+
+  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
+    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
+  fi
+
+  ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_TOKEN' 2>/dev/null || true
+if ! sudo -n true 2>/dev/null; then
+  exit 0
+fi
+if [ -s /var/lib/rancher/rke2/server/node-token ]; then
+  sudo cat /var/lib/rancher/rke2/server/node-token
+  exit 0
+fi
+if [ -s /var/lib/rancher/rke2/server/token ]; then
+  sudo cat /var/lib/rancher/rke2/server/token
+  exit 0
+fi
+if [ -s /etc/rancher/rke2/config.yaml ]; then
+  sudo awk -F': *' '/^token:/ {print $2; exit}' /etc/rancher/rke2/config.yaml
+fi
+REMOTE_DISCOVER_TOKEN
+}
+
+discover_remote_rke2_version() {
+  local node="$1"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local ssh_options=()
+
+  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
+    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
+  fi
+
+  ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_VERSION' 2>/dev/null || true
+if command -v rke2 >/dev/null 2>&1; then
+  rke2 --version | awk '/^rke2 version / {print $3; exit}'
+elif [ -x /usr/local/bin/rke2 ]; then
+  /usr/local/bin/rke2 --version | awk '/^rke2 version / {print $3; exit}'
+elif [ -x /usr/bin/rke2 ]; then
+  /usr/bin/rke2 --version | awk '/^rke2 version / {print $3; exit}'
+fi
+REMOTE_DISCOVER_VERSION
+}
+
+discover_remote_cluster_domain() {
+  local node="$1"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local ssh_options=()
+
+  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
+    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
+  fi
+
+  ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_DOMAIN' 2>/dev/null || true
+if ! sudo -n true 2>/dev/null; then
+  exit 0
+fi
+if [ -s /etc/rancher/rke2/config.yaml ]; then
+  sudo awk -F': *' '/^cluster-domain:/ {print $2; exit}' /etc/rancher/rke2/config.yaml
+fi
+REMOTE_DISCOVER_DOMAIN
+}
+
 kubernetes_api_ready() {
   if ! command -v kubectl >/dev/null 2>&1; then
     return 0
@@ -178,14 +263,56 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     kubernetes_api_port="${MIGRATION_KUBERNETES_API_VIP_PORT:-${KUBERNETES_API_VIP_PORT:-6443}}"
   fi
   ansible_user_for_nodes="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  cluster_domain="${MIGRATION_CLUSTER_DOMAIN:-${CLUSTER_DOMAIN:-}}"
+  if [ -z "${cluster_domain}" ]; then
+    cluster_domain="$(discover_remote_cluster_domain "${first_rke2_node}")"
+  fi
+  cluster_domain="${cluster_domain:-cluster.local}"
+
+  rke2_version="${MIGRATION_RKE2_VERSION:-${RKE2_VERSION:-}}"
+  rke2_version_source="provided"
+  if [ -z "${rke2_version}" ]; then
+    rke2_version="$(discover_remote_rke2_version "${first_rke2_node}")"
+    rke2_version_source="discovered"
+  fi
+  if [ -z "${rke2_version}" ]; then
+    echo "Could not discover a pinned RKE2 version from ${first_rke2_node}." >&2
+    echo "The node does not expose an rke2 binary yet, and this automation will not choose an unpinned latest version." >&2
+    echo "Set MIGRATION_RKE2_VERSION=vX.Y.Z+rke2rN once for a fresh cluster install." >&2
+    exit 1
+  fi
+
+  rke2_token="${MIGRATION_RKE2_TOKEN:-${RKE2_TOKEN:-}}"
+  rke2_token_source="provided"
+  if [ -z "${rke2_token}" ]; then
+    rke2_token="$(discover_remote_rke2_token "${first_rke2_node}")"
+    rke2_token_source="discovered"
+  fi
+  if [ -z "${rke2_token}" ]; then
+    if [ "${rke2_version_source}" = "discovered" ]; then
+      echo "RKE2 is already installed on ${first_rke2_node}, but the existing cluster token could not be read." >&2
+      echo "Fix passwordless sudo for ${ansible_user_for_nodes}; existing clusters must reuse the real RKE2 token." >&2
+      exit 1
+    fi
+    rke2_token="$(generate_rke2_token)"
+    rke2_token_source="generated"
+  fi
+  if [ -z "${rke2_token}" ]; then
+    echo "Could not discover or generate an RKE2 token for the temporary inventory." >&2
+    echo "Install openssl or python3 on the operator, or export MIGRATION_RKE2_TOKEN before running this target." >&2
+    exit 1
+  fi
 
   {
     printf 'all:\n'
     printf '  vars:\n'
-    printf '    ansible_user: %s\n' "${ansible_user_for_nodes}"
+    printf '    ansible_user: %s\n' "$(yaml_quote "${ansible_user_for_nodes}")"
     printf '    ansible_python_interpreter: /usr/bin/python3\n'
     printf '    cluster_engine: rke2\n'
-    printf '    cluster_vip: %s\n' "${cluster_vip}"
+    printf '    cluster_vip: %s\n' "$(yaml_quote "${cluster_vip}")"
+    printf '    cluster_domain: %s\n' "$(yaml_quote "${cluster_domain}")"
+    printf '    rke2_token: %s\n' "$(yaml_quote "${rke2_token}")"
+    printf '    rke2_version: %s\n' "$(yaml_quote "${rke2_version}")"
     printf '    kubernetes_api_vip_port: %s\n' "${kubernetes_api_port}"
     printf '  children:\n'
     printf '    cluster_nodes:\n'
@@ -201,8 +328,8 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
         continue
       fi
       printf '        import-rke2-%02d:\n' "${index}"
-      printf '          ansible_host: %s\n' "${node}"
-      printf '          node_ip: %s\n' "${node}"
+      printf '          ansible_host: %s\n' "$(yaml_quote "${node}")"
+      printf '          node_ip: %s\n' "$(yaml_quote "${node}")"
       index=$((index + 1))
     done
     printf '    rke2_agents:\n'
@@ -222,6 +349,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
   chmod 0600 "${FALLBACK_INVENTORY_PATH}" 2>/dev/null || true
   INVENTORY_PATH="${FALLBACK_INVENTORY_PATH}"
   echo "Generated temporary operator inventory from MIGRATION_RKE2_NODES: ${INVENTORY_PATH}"
+  echo "Temporary inventory RKE2 inputs: token ${rke2_token_source}, version ${rke2_version_source}, cluster domain ${cluster_domain:+ready}."
   echo "Operator kubeconfig endpoint candidates will use port ${kubernetes_api_port}"
   if [ -n "${explicit_cluster_vip}" ]; then
     endpoint_candidates=("${cluster_vip}")

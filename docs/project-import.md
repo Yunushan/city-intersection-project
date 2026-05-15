@@ -68,10 +68,14 @@ If the private production inventory is not present on the operator machine,
 `MIGRATION_RKE2_NODES`. Without `MIGRATION_CLUSTER_VIP`, that temporary
 inventory points kubectl at the first RKE2 node on port `6443`; set
 `MIGRATION_CLUSTER_VIP` and `MIGRATION_KUBERNETES_API_VIP_PORT` when the
-cluster API must be reached through a VIP or load balancer. In this temporary
-inventory mode the helper fetches `/etc/rancher/rke2/rke2.yaml` directly over
-SSH from the first RKE2 node and honors `MIGRATION_SSH_USER` and
-`MIGRATION_SSH_KEY`.
+cluster API must be reached through a VIP or load balancer. In temporary
+inventory mode, the helper fetches `/etc/rancher/rke2/rke2.yaml` directly over
+SSH from the first RKE2 node, discovers the existing RKE2 token, installed RKE2
+version, and cluster domain when available, and generates a private token only
+for fresh installs where RKE2 is not already installed. It honors
+`MIGRATION_SSH_USER` and `MIGRATION_SSH_KEY`; use `MIGRATION_RKE2_VERSION` or
+`MIGRATION_CLUSTER_DOMAIN` only when installing onto fresh nodes where those
+values cannot be discovered yet.
 
 Image migration has three modes:
 
