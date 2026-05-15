@@ -24,7 +24,7 @@ write_kubeconfig_from_node() {
 
   tmp_kubeconfig="$(mktemp)"
   echo "Fetching RKE2 kubeconfig directly from ${ssh_user}@${node}."
-  if ! ssh "${ssh_options[@]}" "${ssh_user}@${node}" "${remote_kubeconfig_command}" > "${tmp_kubeconfig}"; then
+  if ! printf '%s\n' "${remote_kubeconfig_command}" | ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' > "${tmp_kubeconfig}"; then
     rm -f "${tmp_kubeconfig}"
     echo "Could not fetch /etc/rancher/rke2/rke2.yaml from ${ssh_user}@${node}." >&2
     echo "Verify SSH access, MIGRATION_SSH_USER, MIGRATION_SSH_KEY, and sudo permissions on the first RKE2 node." >&2
