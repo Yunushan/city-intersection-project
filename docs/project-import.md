@@ -63,6 +63,13 @@ secrets, or applying manifests. Use it after the dry-run report looks correct
 and the operator machine has access to the Compose project, Docker, Kubernetes,
 and the RKE2 nodes.
 
+If the private production inventory is not present on the operator machine,
+`operator-kubeconfig` can generate a temporary inventory from
+`MIGRATION_RKE2_NODES`. Without `MIGRATION_CLUSTER_VIP`, that temporary
+inventory points kubectl at the first RKE2 node on port `6443`; set
+`MIGRATION_CLUSTER_VIP` and `MIGRATION_KUBERNETES_API_VIP_PORT` when the
+cluster API must be reached through a VIP or load balancer.
+
 Image migration has three modes:
 
 - `MIGRATION_IMAGE_MODE=registry` builds and pushes application images to a

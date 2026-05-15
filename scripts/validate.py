@@ -445,6 +445,17 @@ for kubeconfig_playbook in [
     if 'operator_kubeconfig_rendered' in kubeconfig_playbook_text:
         errors.append(f'{kubeconfig_playbook} must not render kubeconfig through a folded scalar')
 
+kubeconfig_script_text = (ROOT / 'scripts/tools/ensure-kubeconfig.sh').read_text(encoding='utf-8')
+for kubeconfig_script_token in [
+    'MIGRATION_RKE2_NODES',
+    'Generated temporary operator inventory',
+    'MIGRATION_CLUSTER_VIP',
+    'MIGRATION_KUBERNETES_API_VIP_PORT',
+    'kubernetes_api_vip_port',
+]:
+    if kubeconfig_script_token not in kubeconfig_script_text:
+        errors.append(f'Kubeconfig helper missing import inventory fallback token: {kubeconfig_script_token}')
+
 haproxy_template_text = (ROOT / 'ansible/roles/haproxy_keepalived/templates/haproxy.cfg.j2').read_text(
     encoding='utf-8'
 )
