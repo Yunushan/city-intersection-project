@@ -31,8 +31,16 @@ PROJECT_PATH ?=
 IMPORT_REPORT ?=
 IMPORT_STRICT ?= false
 IMPORT_REDACT ?= false
+MIGRATION_OUTPUT ?= reports/import-migration
+MIGRATION_EXECUTE ?= false
+MIGRATION_ALLOW_SECRET_MATERIAL ?= false
+MIGRATION_REGISTRY ?=
+MIGRATION_IMAGE_TAG ?= imported-0.1.0
+MIGRATION_NAMESPACE ?= $(NAMESPACE)
+MIGRATION_DUMP_DIR ?= /var/lib/urban-platform/private/db-dumps
+MIGRATION_DB_TARGETS ?=
 
-.PHONY: help validate image-policy lint configure import-check ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster operator-kubeconfig install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
+.PHONY: help validate image-policy lint configure import-check import-migrate ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster operator-kubeconfig install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
 
 define require_prod_confirmation
 	@if [ "$(ENV)" = "prod" ] && [ "$(CONFIRM_PROD)" != "true" ]; then \
@@ -64,6 +72,13 @@ import-check: ## Check an external Compose project before importing or migrating
 		exit 2; \
 	fi
 	python3 scripts/import_project.py --project-path "$(PROJECT_PATH)" --values "$(VALUES)" --ingress-controller "$(INGRESS)" --webserver "$(WEB)" --database "$(DB)" $(if $(IMPORT_REPORT),--report "$(IMPORT_REPORT)",) $(if $(filter true,$(IMPORT_REDACT)),--redact-sensitive,) $(if $(filter true,$(IMPORT_STRICT)),--strict,)
+
+import-migrate: ## Generate or execute guarded migration automation for an external Compose project.
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo "Set PROJECT_PATH=/path/to/compose-project, for example: make import-migrate PROJECT_PATH=/path/to/compose-project"; \
+		exit 2; \
+	fi
+	python3 scripts/migrate_project.py --project-path "$(PROJECT_PATH)" --values "$(VALUES)" --output "$(MIGRATION_OUTPUT)" --namespace "$(MIGRATION_NAMESPACE)" --ingress-controller "$(INGRESS)" --webserver "$(WEB)" --database "$(DB)" --registry "$(MIGRATION_REGISTRY)" --image-tag "$(MIGRATION_IMAGE_TAG)" --dump-dir "$(MIGRATION_DUMP_DIR)" --db-targets "$(MIGRATION_DB_TARGETS)" $(if $(filter true,$(IMPORT_REDACT)),--redact-sensitive,) $(if $(filter true,$(MIGRATION_EXECUTE)),--execute,) $(if $(filter true,$(MIGRATION_ALLOW_SECRET_MATERIAL)),--allow-secret-material,)
 
 $(ANSIBLE_COLLECTIONS_STAMP): $(ANSIBLE_COLLECTION_REQUIREMENTS)
 	mkdir -p .ansible/collections

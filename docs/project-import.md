@@ -30,6 +30,33 @@ image names hidden while still showing the selected target infrastructure, such
 as Traefik ingress, the selected webserver image, and PostgreSQL-family target
 images.
 
+To generate an automation bundle instead of only a report:
+
+```bash
+make import-migrate PROJECT_PATH=/path/to/compose-project IMPORT_REDACT=true
+```
+
+This writes guarded scripts under `reports/import-migration/`. Dry-run bundle
+generation is the default. To execute automation on the trusted operator machine,
+set explicit inputs and opt in:
+
+```bash
+make import-migrate PROJECT_PATH=/path/to/compose-project \
+  MIGRATION_EXECUTE=true \
+  MIGRATION_ALLOW_SECRET_MATERIAL=true \
+  MIGRATION_REGISTRY=registry.example.com/urban-platform/imported \
+  MIGRATION_DB_TARGETS=/var/lib/urban-platform/private/db-targets.yaml
+```
+
+Database dump/restore is performed by the automation when execution is enabled.
+The restore step runs only for databases listed in the private DB target map.
+The map can use the original private service name or the generated stable alias:
+
+```yaml
+databaseTargets:
+  service-name-or-alias: postgresql://target_user:target_password@target-service.namespace.svc:5432/target_db
+```
+
 Use strict mode when warnings should fail the gate:
 
 ```bash

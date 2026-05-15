@@ -79,13 +79,16 @@ Existing Compose project compatibility check:
 ```bash
 make import-check PROJECT_PATH=/path/to/compose-project INGRESS=traefik WEB=nginx DB=postgresql
 make import-check PROJECT_PATH=/path/to/compose-project IMPORT_REDACT=true IMPORT_REPORT=reports/import-check-public.md
+make import-migrate PROJECT_PATH=/path/to/compose-project IMPORT_REDACT=true
 ```
 
 The read-only checker discovers Compose files, compares service images, ports,
 database versions, web gateway choices, and secret-looking environment values
 against the selected platform profile, then adds a redaction-aware migration
 plan for secrets, database upgrades, Traefik routing, image promotion, and
-volume/config conversion. See [`docs/project-import.md`](docs/project-import.md).
+volume/config conversion. `make import-migrate` generates guarded automation
+scripts and can execute them only after explicit operator opt-in. See
+[`docs/project-import.md`](docs/project-import.md).
 
 Local Docker profile:
 

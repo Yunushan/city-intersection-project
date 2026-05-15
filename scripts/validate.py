@@ -33,6 +33,7 @@ REQUIRED = [
     'config/supply-chain-policy.yaml', 'config/image-policy.yaml', 'config/slo.yaml',
     'scripts/images/validate-images.py', 'scripts/release/generate_sbom.py',
     'scripts/import_project.py',
+    'scripts/migrate_project.py',
     'scripts/tools/install-helm.sh', 'scripts/tools/install-helmfile.sh',
     'scripts/tools/ensure-kubeconfig.sh',
     'tests/policy/basic_policy.py', 'docs/bootstrap-safety.md', 'docs/secrets-management.md',
@@ -264,8 +265,19 @@ for ci_token in [
     if ci_token not in ci_workflow_text:
         errors.append(f'CI missing Python/Ansible compatibility lane token: {ci_token}')
 
+legacy_requirements_text = (ROOT / 'requirements-ci.txt').read_text(encoding='utf-8')
+for legacy_requirement in [
+    'Legacy CI lane: Python 3.11 with ansible-core 2.14.x.',
+    'ansible-core==2.14.18',
+    'PyYAML==6.0.2',
+    'yamllint==1.35.1',
+]:
+    if legacy_requirement not in legacy_requirements_text:
+        errors.append(f'Legacy CI requirements must preserve Python 3.11 / Ansible 2.14 lane pin: {legacy_requirement}')
+
 modern_requirements_text = (ROOT / 'requirements-ci-modern.txt').read_text(encoding='utf-8')
 for modern_requirement in [
+    'Modern CI lane: Python 3.12+ with ansible-core 2.20.x.',
     'ansible-core==2.20.5',
     'PyYAML==6.0.3',
     'yamllint==1.38.0',
@@ -289,6 +301,10 @@ for dependabot_token in [
     'package-ecosystem: "pip"',
     'github-actions:',
     'ci-python:',
+    'dependency-name: "ansible-core"',
+    'version-update:semver-major',
+    'version-update:semver-minor',
+    'requirements-ci.txt intentionally backs the legacy Python 3.11',
 ]:
     if dependabot_token not in dependabot_text:
         errors.append(f'Dependabot missing supply-chain update control: {dependabot_token}')
@@ -536,9 +552,14 @@ for makefile_helm_token in [
     'PROJECT_PATH ?=',
     'IMPORT_REPORT ?=',
     'IMPORT_REDACT ?=',
+    'MIGRATION_OUTPUT ?=',
+    'MIGRATION_EXECUTE ?=',
+    'MIGRATION_ALLOW_SECRET_MATERIAL ?=',
     '--ingress-controller $(INGRESS)',
     'import-check:',
+    'import-migrate:',
     'scripts/import_project.py --project-path "$(PROJECT_PATH)"',
+    'scripts/migrate_project.py --project-path "$(PROJECT_PATH)"',
     '--redact-sensitive',
     'OPERATOR_KUBECONFIG ?=',
     'KUBECONFIG_SCRIPT ?= scripts/tools/ensure-kubeconfig.sh',
@@ -587,6 +608,20 @@ for project_import_token in [
     if project_import_token not in project_import_text:
         errors.append(f'Project import checker missing token: {project_import_token}')
 
+migration_automation_text = (ROOT / 'scripts/migrate_project.py').read_text(encoding='utf-8')
+for migration_automation_token in [
+    'stage_databases',
+    'pg_dump',
+    'pg_restore',
+    'stage_images',
+    'stage_secrets',
+    'MIGRATION_ALLOW_SECRET_MATERIAL',
+    'run-migration.sh',
+    'traefik-ingress-candidates.yaml',
+]:
+    if migration_automation_token not in migration_automation_text:
+        errors.append(f'Project migration automation missing token: {migration_automation_token}')
+
 project_import_docs_text = (ROOT / 'docs/project-import.md').read_text(encoding='utf-8')
 for project_import_docs_token in [
     'make import-check PROJECT_PATH=/path/to/compose-project',
@@ -598,6 +633,9 @@ for project_import_docs_token in [
     'reports/` directory is ignored by Git',
     'Every report includes a migration plan section',
     'database upgrades',
+    'make import-migrate PROJECT_PATH=/path/to/compose-project',
+    'MIGRATION_EXECUTE=true',
+    'MIGRATION_DB_TARGETS',
 ]:
     if project_import_docs_token not in project_import_docs_text:
         errors.append(f'Project import docs missing token: {project_import_docs_token}')
