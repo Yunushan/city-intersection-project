@@ -459,6 +459,7 @@ for kubeconfig_script_token in [
     'MIGRATION_AUTO_REPAIR_CLUSTER',
     'MIGRATION_KEEPALIVED_AUTH_PASS',
     'MIGRATION_KEEPALIVED_INTERFACE',
+    'normalize_rke2_version',
     'discover_remote_cluster_vip',
     'discover_remote_rke2_token',
     'discover_remote_rke2_version',

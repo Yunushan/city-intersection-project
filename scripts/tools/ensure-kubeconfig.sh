@@ -44,6 +44,14 @@ yaml_quote() {
   printf "'"
 }
 
+normalize_rke2_version() {
+  local value="$1"
+  printf '%s\n' "${value}" \
+    | tr -d '\r' \
+    | grep -Eo 'v[0-9]+\.[0-9]+\.[0-9]+\+rke2r[0-9]+' \
+    | head -n 1 || true
+}
+
 generate_rke2_token() {
   if command -v openssl >/dev/null 2>&1; then
     openssl rand -hex 32
@@ -136,11 +144,11 @@ discover_remote_rke2_version() {
 
   ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' <<'REMOTE_DISCOVER_VERSION' 2>/dev/null || true
 if command -v rke2 >/dev/null 2>&1; then
-  rke2 --version | awk '/^rke2 version / {print $3; exit}'
+  rke2 --version
 elif [ -x /usr/local/bin/rke2 ]; then
-  /usr/local/bin/rke2 --version | awk '/^rke2 version / {print $3; exit}'
+  /usr/local/bin/rke2 --version
 elif [ -x /usr/bin/rke2 ]; then
-  /usr/bin/rke2 --version | awk '/^rke2 version / {print $3; exit}'
+  /usr/bin/rke2 --version
 fi
 REMOTE_DISCOVER_VERSION
 }
@@ -404,9 +412,10 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     rke2_version="$(discover_remote_rke2_version "${first_rke2_node}")"
     rke2_version_source="discovered"
   fi
+  rke2_version="$(normalize_rke2_version "${rke2_version}")"
   if [ -z "${rke2_version}" ]; then
     echo "Could not discover a pinned RKE2 version from ${first_rke2_node}." >&2
-    echo "The node does not expose an rke2 binary yet, and this automation will not choose an unpinned latest version." >&2
+    echo "The node did not return a version like v1.33.5+rke2r1, and this automation will not choose an unpinned latest version." >&2
     echo "Set MIGRATION_RKE2_VERSION=vX.Y.Z+rke2rN once for a fresh cluster install." >&2
     exit 1
   fi
