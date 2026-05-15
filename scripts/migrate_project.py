@@ -126,9 +126,45 @@ def read_database_targets(path: str | None) -> dict[str, Any]:
     return {str(key): value for key, value in targets.items()}
 
 
-def k8s_secret_data(namespace: str, name: str) -> dict[str, str]:
+def kubectl_command(args: argparse.Namespace, command: list[str]) -> list[str]:
+    base = ["kubectl"]
+    if args.kubeconfig:
+        base.extend(["--kubeconfig", args.kubeconfig])
+    return [*base, *command]
+
+
+def require_kubernetes_api(args: argparse.Namespace) -> None:
+    if not args.execute:
+        return
+    command = kubectl_command(args, ["version", "--request-timeout=10s"])
+    result = subprocess.run(command, text=True, capture_output=True)
+    if result.returncode == 0:
+        ensure_kubernetes_namespace(args)
+        return
+    details = "\n".join(part for part in [result.stdout.strip(), result.stderr.strip()] if part)
+    kubeconfig_note = f" with kubeconfig {args.kubeconfig}" if args.kubeconfig else ""
+    raise SystemExit(
+        "Kubernetes API is not reachable"
+        f"{kubeconfig_note}. import-auto cannot apply secrets, read target database secrets, or apply manifests until this is fixed.\n"
+        "The Makefile now runs `make operator-kubeconfig` before import-auto; if this still fails, verify the RKE2 API/VIP listener and cluster health.\n"
+        f"kubectl output:\n{details}"
+    )
+
+
+def ensure_kubernetes_namespace(args: argparse.Namespace) -> None:
+    get_command = kubectl_command(args, ["get", "namespace", args.namespace])
+    if subprocess.run(get_command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0:
+        return
+    run_command(kubectl_command(args, ["create", "namespace", args.namespace]))
+
+
+def k8s_secret_data(namespace: str, name: str, kubeconfig: str = "") -> dict[str, str]:
+    command = ["kubectl"]
+    if kubeconfig:
+        command.extend(["--kubeconfig", kubeconfig])
+    command.extend(["-n", namespace, "get", "secret", name, "-o", "json"])
     result = subprocess.run(
-        ["kubectl", "-n", namespace, "get", "secret", name, "-o", "json"],
+        command,
         text=True,
         capture_output=True,
         check=True,
@@ -141,7 +177,7 @@ def k8s_secret_data(namespace: str, name: str) -> dict[str, str]:
     }
 
 
-def target_dsn_from_mapping(target: Any, namespace: str) -> str | None:
+def target_dsn_from_mapping(target: Any, namespace: str, kubeconfig: str = "") -> str | None:
     if isinstance(target, str):
         if any(marker in target for marker in ["<target_", "<namespace>"]):
             return None
@@ -159,7 +195,7 @@ def target_dsn_from_mapping(target: Any, namespace: str) -> str | None:
         secret_namespace = str(secret_ref.get("namespace") or namespace)
         secret_name = str(secret_ref.get("name"))
         try:
-            secret_data = k8s_secret_data(secret_namespace, secret_name)
+            secret_data = k8s_secret_data(secret_namespace, secret_name, kubeconfig)
         except subprocess.CalledProcessError:
             print(f"Could not read target database secret {secret_namespace}/{secret_name}; restore for this target will be skipped.")
             return None
@@ -552,6 +588,7 @@ def generate_bundle(
         f'NAMESPACE="${{NAMESPACE:-{args.namespace}}}"\n'
         f'MIGRATION_OUTPUT="${{MIGRATION_OUTPUT:-{output}}}"\n'
         f'MIGRATION_PRIVATE_DIR="${{MIGRATION_PRIVATE_DIR:-{args.private_dir}}}"\n'
+        f'MIGRATION_KUBECONFIG="${{MIGRATION_KUBECONFIG:-{args.kubeconfig}}}"\n'
         f'MIGRATION_IMAGE_MODE="${{MIGRATION_IMAGE_MODE:-{args.image_mode}}}"\n'
         f'MIGRATION_IMAGE_OUTPUT_DIR="${{MIGRATION_IMAGE_OUTPUT_DIR:-{args.image_output_dir}}}"\n'
         f'MIGRATION_RKE2_NODES="${{MIGRATION_RKE2_NODES:-{args.rke2_nodes}}}"\n'
@@ -575,7 +612,7 @@ def generate_bundle(
     callback = (
         'python3 "$REPO_ROOT/scripts/migrate_project.py" '
         '--project-path "$PROJECT_PATH" --values "$VALUES" --namespace "$NAMESPACE" '
-        '--output "$MIGRATION_OUTPUT" --private-dir "$MIGRATION_PRIVATE_DIR" --auto-prepare '
+        '--output "$MIGRATION_OUTPUT" --private-dir "$MIGRATION_PRIVATE_DIR" --kubeconfig "$MIGRATION_KUBECONFIG" --auto-prepare '
         '--image-mode "$MIGRATION_IMAGE_MODE" --image-output-dir "$MIGRATION_IMAGE_OUTPUT_DIR" '
         '--rke2-nodes "$MIGRATION_RKE2_NODES" --rke2-image-dir "$MIGRATION_RKE2_IMAGE_DIR" '
         '--ssh-user "$MIGRATION_SSH_USER" --ssh-key "$MIGRATION_SSH_KEY" '
@@ -657,7 +694,7 @@ def stage_secrets(args: argparse.Namespace, service_pairs: list[tuple[import_pro
             "type": "Opaque",
             "stringData": entries,
         }
-        run_command(["kubectl", "-n", args.namespace, "apply", "-f", "-"], stdin=yaml.safe_dump(manifest, sort_keys=False))
+        run_command(kubectl_command(args, ["-n", args.namespace, "apply", "--validate=false", "-f", "-"]), stdin=yaml.safe_dump(manifest, sort_keys=False))
 
 
 def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: list[tuple[import_project.ServiceRecord, dict[str, Any]]]) -> None:
@@ -777,7 +814,7 @@ def stage_databases(args: argparse.Namespace, service_pairs: list[tuple[import_p
             ],
             env=run_env,
         )
-        target_dsn = target_dsn_from_mapping(targets.get(record.name) or targets.get(alias), args.namespace)
+        target_dsn = target_dsn_from_mapping(targets.get(record.name) or targets.get(alias), args.namespace, args.kubeconfig)
         if target_dsn:
             restore_env = os.environ.copy()
             run_command(
@@ -836,7 +873,7 @@ def stage_manifests(args: argparse.Namespace, service_pairs: list[tuple[import_p
     write_file(path, content)
     print(f"Wrote {path}")
     if args.execute and manifests:
-        run_command(["kubectl", "-n", args.namespace, "apply", "-f", str(path)])
+        run_command(kubectl_command(args, ["-n", args.namespace, "apply", "--validate=false", "-f", str(path)]))
 
 
 def stage_validate(args: argparse.Namespace) -> None:
@@ -872,6 +909,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--image-policy", default=str(import_project.DEFAULT_IMAGE_POLICY))
     parser.add_argument("--output", default="reports/import-migration")
     parser.add_argument("--namespace", default="urban-platform")
+    parser.add_argument("--kubeconfig", default=os.environ.get("KUBECONFIG", ""))
     parser.add_argument("--ingress-controller", choices=["traefik", "nginx"], default="traefik")
     parser.add_argument("--webserver", choices=["nginx", "apache-httpd", "apache-tomcat", "traefik"], default="nginx")
     parser.add_argument("--database", default="postgresql")
@@ -910,6 +948,8 @@ def main(argv: list[str]) -> int:
         print_bundle_files(Path(args.output).expanduser())
         if args.stage == "bundle" and args.execute:
             print("Execute mode was set, but stage `bundle` only writes automation files. Use --stage all or a specific --stage to run actions.")
+    if args.stage in {"secrets", "databases", "manifests", "all"}:
+        require_kubernetes_api(args)
     if args.stage in {"secrets", "all"}:
         stage_secrets(args, service_pairs)
     if args.stage in {"images", "all"}:

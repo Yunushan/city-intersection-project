@@ -56,9 +56,12 @@ make import-auto PROJECT_PATH=/path/to/compose-project \
 ```
 
 `import-auto` is a convenience wrapper around `import-migrate` with
-`MIGRATION_STAGE=all` and `MIGRATION_EXECUTE=true`. Use it after the dry-run
-report looks correct and the operator machine has access to the Compose project,
-Docker, Kubernetes, and the RKE2 nodes.
+`MIGRATION_STAGE=all` and `MIGRATION_EXECUTE=true`. It first runs the
+operator-kubeconfig repair target, then verifies Kubernetes API reachability
+with `MIGRATION_KUBECONFIG` before applying secrets, reading database target
+secrets, or applying manifests. Use it after the dry-run report looks correct
+and the operator machine has access to the Compose project, Docker, Kubernetes,
+and the RKE2 nodes.
 
 Image migration has three modes:
 
