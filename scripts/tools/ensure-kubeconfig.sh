@@ -9,6 +9,34 @@ ANSIBLE_PLAYBOOK_BIN="${ANSIBLE_PLAYBOOK:-ansible-playbook}"
 OPERATOR_KUBECONFIG_PATH="${OPERATOR_KUBECONFIG:-${KUBECONFIG:-${HOME}/.kube/config}}"
 FALLBACK_INVENTORY_PATH="${TMPDIR:-/tmp}/urban-platform-import-inventory.yml"
 
+write_kubeconfig_from_node() {
+  local node="$1"
+  local endpoint_host="$2"
+  local endpoint_port="$3"
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local remote_kubeconfig_command="${MIGRATION_RKE2_KUBECONFIG_COMMAND:-sudo cat /etc/rancher/rke2/rke2.yaml}"
+  local tmp_kubeconfig
+  local ssh_options=()
+
+  if [ -n "${MIGRATION_SSH_KEY:-}" ]; then
+    ssh_options+=("-i" "${MIGRATION_SSH_KEY}")
+  fi
+
+  tmp_kubeconfig="$(mktemp)"
+  echo "Fetching RKE2 kubeconfig directly from ${ssh_user}@${node}."
+  if ! ssh "${ssh_options[@]}" "${ssh_user}@${node}" "${remote_kubeconfig_command}" > "${tmp_kubeconfig}"; then
+    rm -f "${tmp_kubeconfig}"
+    echo "Could not fetch /etc/rancher/rke2/rke2.yaml from ${ssh_user}@${node}." >&2
+    echo "Verify SSH access, MIGRATION_SSH_USER, MIGRATION_SSH_KEY, and sudo permissions on the first RKE2 node." >&2
+    return 1
+  fi
+
+  sed -i -E "s#server: https://[^[:space:]]+#server: https://${endpoint_host}:${endpoint_port}#" "${tmp_kubeconfig}"
+  install -d -m 0700 "$(dirname "${OPERATOR_KUBECONFIG_PATH}")"
+  install -m 0600 "${tmp_kubeconfig}" "${OPERATOR_KUBECONFIG_PATH}"
+  rm -f "${tmp_kubeconfig}"
+}
+
 if [ "${ENGINE}" != "rke2" ]; then
   echo "Skipping automatic kubeconfig repair for ENGINE=${ENGINE}; using existing kubectl context."
   exit 0
@@ -88,6 +116,12 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
   INVENTORY_PATH="${FALLBACK_INVENTORY_PATH}"
   echo "Generated temporary operator inventory from MIGRATION_RKE2_NODES: ${INVENTORY_PATH}"
   echo "Operator kubeconfig endpoint will be https://${cluster_vip}:${kubernetes_api_port}"
+  write_kubeconfig_from_node "${first_rke2_node}" "${cluster_vip}" "${kubernetes_api_port}"
+  if command -v kubectl >/dev/null 2>&1; then
+    KUBECONFIG="${OPERATOR_KUBECONFIG_PATH}" kubectl version --request-timeout=10s >/dev/null
+  fi
+  echo "Operator kubeconfig ready: ${OPERATOR_KUBECONFIG_PATH}"
+  exit 0
 fi
 
 extra_args=()

@@ -449,6 +449,9 @@ kubeconfig_script_text = (ROOT / 'scripts/tools/ensure-kubeconfig.sh').read_text
 for kubeconfig_script_token in [
     'MIGRATION_RKE2_NODES',
     'Generated temporary operator inventory',
+    'Fetching RKE2 kubeconfig directly',
+    'MIGRATION_SSH_KEY',
+    'MIGRATION_RKE2_KUBECONFIG_COMMAND',
     'MIGRATION_CLUSTER_VIP',
     'MIGRATION_KUBERNETES_API_VIP_PORT',
     'kubernetes_api_vip_port',
