@@ -56,7 +56,7 @@ running, bootstrap can reboot that one host after commenting swap entries in
 
 ```bash
 make bootstrap ENV=prod ENGINE=rke2 CONFIRM_PROD=true \
-  ANSIBLE_ARGS="--limit urban-platform-infra-2 -e common_swap_disable_strategy=reboot"
+  ANSIBLE_ARGS="--limit cip-cp-02 -e common_swap_disable_strategy=reboot"
 ```
 
 Use `ansible-vault` or your existing secret manager for inventory secrets; never rely on placeholder values outside the example inventory.

@@ -27,8 +27,11 @@ HELMFILE_INSTALL_SCRIPT ?= scripts/tools/install-helmfile.sh
 OPERATOR_CRD_TIMEOUT ?= 180s
 OPERATOR_KUBECONFIG ?= $(if $(KUBECONFIG),$(KUBECONFIG),$(HOME)/.kube/config)
 KUBECONFIG_SCRIPT ?= scripts/tools/ensure-kubeconfig.sh
+PROJECT_PATH ?=
+IMPORT_REPORT ?=
+IMPORT_STRICT ?= false
 
-.PHONY: help validate image-policy lint configure ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster operator-kubeconfig install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
+.PHONY: help validate image-policy lint configure import-check ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster operator-kubeconfig install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
 
 define require_prod_confirmation
 	@if [ "$(ENV)" = "prod" ] && [ "$(CONFIRM_PROD)" != "true" ]; then \
@@ -53,6 +56,13 @@ lint: ## Run local static checks that mirror the CI static gate.
 
 configure: ## Update selected runtime defaults in Helm values.
 	python3 scripts/configure.py --engine $(ENGINE) --ingress-controller $(INGRESS) --webserver $(WEB) --database $(DB) --observability $(OBS) --values $(VALUES)
+
+import-check: ## Check an external Compose project before importing or migrating it.
+	@if [ -z "$(PROJECT_PATH)" ]; then \
+		echo "Set PROJECT_PATH=/path/to/compose-project, for example: make import-check PROJECT_PATH=/path/to/compose-project"; \
+		exit 2; \
+	fi
+	python3 scripts/import_project.py --project-path "$(PROJECT_PATH)" --values "$(VALUES)" --ingress-controller "$(INGRESS)" --webserver "$(WEB)" --database "$(DB)" $(if $(IMPORT_REPORT),--report "$(IMPORT_REPORT)",) $(if $(filter true,$(IMPORT_STRICT)),--strict,)
 
 $(ANSIBLE_COLLECTIONS_STAMP): $(ANSIBLE_COLLECTION_REQUIREMENTS)
 	mkdir -p .ansible/collections

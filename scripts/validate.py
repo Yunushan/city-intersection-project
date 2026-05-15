@@ -32,11 +32,13 @@ REQUIRED = [
     'config/deployment-topologies.yaml', 'config/secrets.contract.yaml',
     'config/supply-chain-policy.yaml', 'config/image-policy.yaml', 'config/slo.yaml',
     'scripts/images/validate-images.py', 'scripts/release/generate_sbom.py',
+    'scripts/import_project.py',
     'scripts/tools/install-helm.sh', 'scripts/tools/install-helmfile.sh',
     'scripts/tools/ensure-kubeconfig.sh',
     'tests/policy/basic_policy.py', 'docs/bootstrap-safety.md', 'docs/secrets-management.md',
     'docs/supply-chain.md', 'docs/image-governance.md', 'docs/observability-slo.md',
     'docs/deployment-topologies.md', 'docs/runbooks.md', 'docs/release-guide.md',
+    'docs/project-import.md',
     'helm/urban-platform-infra/topologies/single-node.yaml',
     'helm/urban-platform-infra/topologies/two-node-lab.yaml',
     'helm/urban-platform-infra/topologies/three-node-ha.yaml',
@@ -531,7 +533,11 @@ if 'bootstrap-check' not in makefile_text or 'install-cluster-check' not in make
     errors.append('Makefile must expose Ansible check-mode targets')
 for makefile_helm_token in [
     'INGRESS ?= traefik',
+    'PROJECT_PATH ?=',
+    'IMPORT_REPORT ?=',
     '--ingress-controller $(INGRESS)',
+    'import-check:',
+    'scripts/import_project.py --project-path "$(PROJECT_PATH)"',
     'OPERATOR_KUBECONFIG ?=',
     'KUBECONFIG_SCRIPT ?= scripts/tools/ensure-kubeconfig.sh',
     'operator-kubeconfig:',
@@ -559,6 +565,30 @@ for makefile_helm_token in [
 ]:
     if makefile_helm_token not in makefile_text:
         errors.append(f'Makefile must prepare operator tooling before deploy: {makefile_helm_token}')
+
+project_import_text = (ROOT / 'scripts/import_project.py').read_text(encoding='utf-8')
+for project_import_token in [
+    'find_compose_files',
+    'docker-compose',
+    '--project-path',
+    'nginxinc/nginx-unprivileged:1.30.0',
+    'CloudNativePG',
+    'config/image-policy.yaml',
+    'literal secret value',
+]:
+    if project_import_token not in project_import_text:
+        errors.append(f'Project import checker missing token: {project_import_token}')
+
+project_import_docs_text = (ROOT / 'docs/project-import.md').read_text(encoding='utf-8')
+for project_import_docs_token in [
+    'make import-check PROJECT_PATH=/path/to/compose-project',
+    'INGRESS=traefik',
+    'WEB=nginx',
+    'DB=postgresql',
+    'IMPORT_STRICT=true',
+]:
+    if project_import_docs_token not in project_import_docs_text:
+        errors.append(f'Project import docs missing token: {project_import_docs_token}')
 
 helm_installer_text = (ROOT / 'scripts/tools/install-helm.sh').read_text(encoding='utf-8')
 for helm_installer_token in [

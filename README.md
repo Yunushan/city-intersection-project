@@ -29,6 +29,7 @@
   <a href="docs/helm-hardening.md">Helm Hardening</a> •
   <a href="docs/kubernetes-security-posture.md">Kubernetes Security</a> •
   <a href="docs/deployment-topologies.md">Topologies</a> •
+  <a href="docs/project-import.md">Project Import</a> •
   <a href="docs/three-node-rke2-tarball-deploy.md">3-Node Deploy</a> •
   <a href="docs/secrets-management.md">Secrets</a> •
   <a href="docs/supply-chain.md">Supply Chain</a> •
@@ -73,6 +74,16 @@ make status
 
 For deploying a previously packaged application archive onto three local RKE2 nodes, use the sanitized runbook in [`docs/three-node-rke2-tarball-deploy.md`](docs/three-node-rke2-tarball-deploy.md). It covers image build/preload, private inventory setup, RKE2 bootstrap, Helm deployment, and verification without committing real node addresses or credentials.
 
+Existing Compose project compatibility check:
+
+```bash
+make import-check PROJECT_PATH=/path/to/compose-project INGRESS=traefik WEB=nginx DB=postgresql
+```
+
+The read-only checker discovers Compose files, compares service images, ports,
+database versions, web gateway choices, and secret-looking environment values
+against the selected platform profile. See [`docs/project-import.md`](docs/project-import.md).
+
 Local Docker profile:
 
 ```bash
@@ -99,7 +110,7 @@ By default the Kubernetes profile deploys:
 | Control-plane access | HAProxy + Keepalived | VIP failover on `7443` for the API and `9346` for RKE2 registration |
 | Edge ingress | RKE2-bundled Traefik | Default ingress class `traefik`; RKE2 owns the bundled Traefik version, with an optional upstream chart pin mode, and nginx/ingress-nginx remains switchable |
 | Time sync | Chrony | Installed on every node |
-| Web gateway | nginx `1.30.0` | 3 replicas, root ingress, HTTPS redirect, swappable with Apache HTTPD, Tomcat, or Traefik |
+| Web gateway | `nginxinc/nginx-unprivileged:1.30.0` | 3 replicas, root ingress, HTTPS redirect, swappable with Apache HTTPD, Tomcat, or Traefik |
 | Application services | Sanitized `example-app-*` images | 3 replicas, PDB, HPA, anti-affinity/topology spread |
 | Kafka | `confluentinc/cp-kafka:7.9.6` + `confluentinc/cp-zookeeper:7.9.6` | 3 brokers, 3 ZooKeeper pods, Kafka UI |
 | Redis | `redis:8.6.2` | 3 Redis pods + Sentinel scaffolding |
