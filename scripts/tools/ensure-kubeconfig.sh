@@ -258,8 +258,13 @@ prepare_remote_ansible_tmp_dirs() {
     if [ -z "${node}" ]; then
       continue
     fi
-    ssh "${ssh_options[@]}" "${ssh_user}@${node}" \
-      "umask 077; mkdir -p '${remote_tmp}'; chmod 700 '${remote_tmp_parent}' '${remote_tmp}'" >/dev/null 2>&1 || {
+    ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' -- "${remote_tmp_parent}" "${remote_tmp}" >/dev/null 2>&1 <<'REMOTE_PREPARE_ANSIBLE_TMP' || {
+remote_tmp_parent="$1"
+remote_tmp="$2"
+umask 077
+mkdir -p "${remote_tmp}"
+chmod 700 "${remote_tmp_parent}" "${remote_tmp}"
+REMOTE_PREPARE_ANSIBLE_TMP
         echo "Could not pre-create Ansible remote tmp ${remote_tmp} on ${node}; continuing and letting Ansible report details." >&2
       }
   done
