@@ -38,6 +38,11 @@ write_kubeconfig_from_node() {
   become_password="$(migration_become_password)"
   tmp_kubeconfig="$(mktemp)"
   echo "Fetching RKE2 kubeconfig directly from ${ssh_user}@${node}."
+  if [ -z "${remote_kubeconfig_command}" ] && ! ssh "${ssh_options[@]}" "${ssh_user}@${node}" "test -e /etc/rancher/rke2/rke2.yaml"; then
+    rm -f "${tmp_kubeconfig}"
+    echo "RKE2 kubeconfig is not present on ${node} yet; this is normal before the first server is installed." >&2
+    return 2
+  fi
   if [ -n "${remote_kubeconfig_command}" ]; then
     if ! printf '%s\n' "${remote_kubeconfig_command}" | ssh "${ssh_options[@]}" "${ssh_user}@${node}" 'sh -s' > "${tmp_kubeconfig}"; then
       rm -f "${tmp_kubeconfig}"
@@ -237,6 +242,27 @@ if [ -s /etc/keepalived/keepalived.conf ]; then
 fi
 ip route show default 2>/dev/null | awk '{print $5; exit}'
 REMOTE_DISCOVER_KEEPALIVED_INTERFACE
+}
+
+prepare_remote_ansible_tmp_dirs() {
+  local node
+  local ssh_user="${MIGRATION_SSH_USER:-${ANSIBLE_USER:-root}}"
+  local remote_tmp="/tmp/.ansible-${ssh_user}/tmp"
+  local remote_tmp_parent="/tmp/.ansible-${ssh_user}"
+  local ssh_options=()
+
+  mapfile -t ssh_options < <(ssh_options_for_node)
+
+  for node in "$@"; do
+    node="${node//[[:space:]]/}"
+    if [ -z "${node}" ]; then
+      continue
+    fi
+    ssh "${ssh_options[@]}" "${ssh_user}@${node}" \
+      "umask 077; mkdir -p '${remote_tmp}'; chmod 700 '${remote_tmp_parent}' '${remote_tmp}'" >/dev/null 2>&1 || {
+        echo "Could not pre-create Ansible remote tmp ${remote_tmp} on ${node}; continuing and letting Ansible report details." >&2
+      }
+  done
 }
 
 run_cluster_repair() {
@@ -502,6 +528,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     printf '  vars:\n'
     printf '    ansible_user: %s\n' "$(yaml_quote "${ansible_user_for_nodes}")"
     printf '    ansible_python_interpreter: /usr/bin/python3\n'
+    printf '    ansible_remote_tmp: %s\n' "$(yaml_quote "/tmp/.ansible-${ansible_user_for_nodes}/tmp")"
     if [ -n "${become_password}" ]; then
       printf '    ansible_become_password: %s\n' "$(yaml_quote "${become_password}")"
     fi
@@ -561,6 +588,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
     echo "Temporary inventory HA inputs: no cluster VIP detected; using direct node API endpoints."
   fi
   echo "Operator kubeconfig endpoint candidates will use port ${kubernetes_api_port}"
+  prepare_remote_ansible_tmp_dirs "${rke2_nodes[@]}"
   if [ -n "${explicit_cluster_vip}" ] || [ -n "${discovered_cluster_vip}" ]; then
     endpoint_candidates=("${cluster_vip}")
   else
@@ -568,61 +596,85 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
   fi
 
   selected_endpoint=""
+  fresh_cluster=false
   for endpoint_candidate in "${endpoint_candidates[@]}"; do
     endpoint_candidate="${endpoint_candidate//[[:space:]]/}"
     if [ -z "${endpoint_candidate}" ]; then
       continue
     fi
     echo "Trying Kubernetes API endpoint https://${endpoint_candidate}:${kubernetes_api_port}"
-    if ! write_kubeconfig_from_node "${first_rke2_node}" "${endpoint_candidate}" "${kubernetes_api_port}"; then
+    if write_kubeconfig_from_node "${first_rke2_node}" "${endpoint_candidate}" "${kubernetes_api_port}"; then
+      if kubernetes_api_ready; then
+        selected_endpoint="${endpoint_candidate}"
+        break
+      fi
+      echo "Kubernetes API endpoint https://${endpoint_candidate}:${kubernetes_api_port} is not ready from this operator; trying the next endpoint." >&2
+      continue
+    fi
+    kubeconfig_status=$?
+    if [ "${kubeconfig_status}" -eq 2 ]; then
+      fresh_cluster=true
+      echo "Skipping remaining endpoint probes until RKE2 creates the first kubeconfig." >&2
+      break
+    else
       echo "Could not fetch kubeconfig before probing https://${endpoint_candidate}:${kubernetes_api_port}; this is expected on a fresh cluster." >&2
       continue
     fi
-    if kubernetes_api_ready; then
-      selected_endpoint="${endpoint_candidate}"
-      break
-    fi
-    echo "Kubernetes API endpoint https://${endpoint_candidate}:${kubernetes_api_port} is not ready from this operator; trying the next endpoint." >&2
   done
 
   if [ -z "${selected_endpoint}" ]; then
-    if [ "${MIGRATION_KUBE_API_TUNNEL:-auto}" = "false" ]; then
+    if [ "${MIGRATION_KUBE_API_TUNNEL:-auto}" = "false" ] && [ "${fresh_cluster}" != "true" ]; then
       echo "No Kubernetes API endpoint from MIGRATION_RKE2_NODES became ready." >&2
       echo "Check RKE2 server health/firewall rules, or set MIGRATION_CLUSTER_VIP and MIGRATION_KUBERNETES_API_VIP_PORT to the reachable API endpoint." >&2
       exit 1
     fi
-    echo "No node API endpoint was reachable directly; trying SSH tunnel fallback." >&2
-    for tunnel_node in "${rke2_nodes[@]}"; do
-      tunnel_node="${tunnel_node//[[:space:]]/}"
-      if [ -z "${tunnel_node}" ]; then
-        continue
-      fi
-      if ! tunnel_port="$(start_kubernetes_api_tunnel "${tunnel_node}" "6443")"; then
-        echo "Could not open an SSH tunnel through ${tunnel_node}; trying the next node." >&2
-        continue
-      fi
-      if ! write_kubeconfig_from_node "${first_rke2_node}" "127.0.0.1" "${tunnel_port}"; then
+    if [ "${fresh_cluster}" = "true" ]; then
+      echo "Fresh RKE2 cluster detected; skipping SSH tunnel fallback until bootstrap creates kubeconfig." >&2
+    else
+      echo "No node API endpoint was reachable directly; trying SSH tunnel fallback." >&2
+      for tunnel_node in "${rke2_nodes[@]}"; do
+        tunnel_node="${tunnel_node//[[:space:]]/}"
+        if [ -z "${tunnel_node}" ]; then
+          continue
+        fi
+        if ! tunnel_port="$(start_kubernetes_api_tunnel "${tunnel_node}" "6443")"; then
+          echo "Could not open an SSH tunnel through ${tunnel_node}; trying the next node." >&2
+          continue
+        fi
+        if write_kubeconfig_from_node "${first_rke2_node}" "127.0.0.1" "${tunnel_port}"; then
+          if kubernetes_api_ready; then
+            selected_endpoint="127.0.0.1:${tunnel_port} via SSH tunnel ${tunnel_node}"
+            break
+          fi
+          echo "Kubernetes API was not ready through SSH tunnel via ${tunnel_node}; trying the next node." >&2
+          stop_kubernetes_api_tunnel "${tunnel_node}" "6443" "${tunnel_port}"
+          continue
+        fi
+        kubeconfig_status=$?
+        if [ "${kubeconfig_status}" -eq 2 ]; then
+          fresh_cluster=true
+          echo "RKE2 kubeconfig is still absent; stopping tunnel probes and proceeding to repair." >&2
+          stop_kubernetes_api_tunnel "${tunnel_node}" "6443" "${tunnel_port}"
+          break
+        fi
         echo "Could not fetch kubeconfig through SSH tunnel via ${tunnel_node}; trying the next node." >&2
         stop_kubernetes_api_tunnel "${tunnel_node}" "6443" "${tunnel_port}"
-        continue
-      fi
-      if kubernetes_api_ready; then
-        selected_endpoint="127.0.0.1:${tunnel_port} via SSH tunnel ${tunnel_node}"
-        break
-      fi
-      echo "Kubernetes API was not ready through SSH tunnel via ${tunnel_node}; trying the next node." >&2
-      stop_kubernetes_api_tunnel "${tunnel_node}" "6443" "${tunnel_port}"
-    done
+      done
+    fi
 
     if [ -z "${selected_endpoint}" ]; then
-      echo "Kubernetes API was not ready through direct endpoints or SSH tunnel fallback." >&2
-      echo "Check RKE2 service health and passwordless sudo for ${ansible_user_for_nodes}." >&2
-      for diagnostic_node in "${rke2_nodes[@]}"; do
-        diagnostic_node="${diagnostic_node//[[:space:]]/}"
-        if [ -n "${diagnostic_node}" ]; then
-          show_remote_rke2_diagnostics "${diagnostic_node}"
-        fi
-      done
+      if [ "${fresh_cluster}" = "true" ]; then
+        echo "RKE2 has not created a kubeconfig yet; automatic cluster reconciliation will install the first server." >&2
+      else
+        echo "Kubernetes API was not ready through direct endpoints or SSH tunnel fallback." >&2
+        echo "Check RKE2 service health and passwordless sudo for ${ansible_user_for_nodes}." >&2
+        for diagnostic_node in "${rke2_nodes[@]}"; do
+          diagnostic_node="${diagnostic_node//[[:space:]]/}"
+          if [ -n "${diagnostic_node}" ]; then
+            show_remote_rke2_diagnostics "${diagnostic_node}"
+          fi
+        done
+      fi
       if [ "${MIGRATION_AUTO_REPAIR_CLUSTER:-false}" = "true" ]; then
         run_cluster_repair
         export MIGRATION_AUTO_REPAIR_CLUSTER=false
