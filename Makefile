@@ -16,8 +16,11 @@ ANSIBLE_GALAXY ?= ansible-galaxy
 ANSIBLE_CONFIG ?= ansible/ansible.cfg
 ANSIBLE_ARGS ?=
 ANSIBLE_DIFF ?= --diff
+PYTHON ?= python3
+PIP ?= $(PYTHON) -m pip
 ANSIBLE_COLLECTION_REQUIREMENTS ?= ansible/requirements.yml
 ANSIBLE_COLLECTIONS_STAMP ?= .ansible/collections/.$(subst /,_,$(ANSIBLE_COLLECTION_REQUIREMENTS)).stamp
+PYTHON_DEPS_STAMP ?= .ansible/.python-deps.stamp
 CONFIRM_PROD ?= false
 HELM ?= helm
 HELM_INSTALL_SCRIPT ?= scripts/tools/install-helm.sh
@@ -60,7 +63,7 @@ MIGRATION_NAMESPACE ?= $(NAMESPACE)
 MIGRATION_DUMP_DIR ?= $(MIGRATION_PRIVATE_DIR)/db-dumps
 MIGRATION_DB_TARGETS ?= $(MIGRATION_PRIVATE_DIR)/db-targets.yaml
 
-.PHONY: help validate image-policy lint configure import-check import-plan import-migrate import-auto ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster operator-kubeconfig install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
+.PHONY: help validate image-policy lint configure import-check import-plan import-migrate import-auto python-deps ansible-collections preflight bootstrap-check bootstrap install-cluster-check install-cluster operator-kubeconfig install-helm install-helmfile install-operators wait-operator-crds ensure-namespace deploy deploy-dry-run package-chart release-evidence status observability-status docker-up docker-down docker-status policy clean
 
 define require_prod_confirmation
 	@if [ "$(ENV)" = "prod" ] && [ "$(CONFIRM_PROD)" != "true" ]; then \
@@ -72,7 +75,16 @@ endef
 help:
 	@awk 'BEGIN {FS = ":.*##"; printf "\nUsage: make <target> [ENV=prod ENGINE=rke2 INGRESS=traefik WEB=nginx DB=postgresql OBS=elasticsearch TOPOLOGY=three-node-ha]\n\nTargets:\n"} /^[a-zA-Z_-]+:.*?##/ { printf "  %-22s %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 
-validate: ## Validate YAML, Helm chart structure, scripts, and config catalogs.
+$(PYTHON_DEPS_STAMP): requirements-ci.txt requirements-ci-modern.txt
+	mkdir -p .ansible
+	@req="$$( $(PYTHON) -c 'import sys; print("requirements-ci-modern.txt" if sys.version_info >= (3, 12) else "requirements-ci.txt")' )"; \
+		echo "Installing Python operator dependencies from $$req"; \
+		$(PIP) install -r "$$req"; \
+		touch "$(PYTHON_DEPS_STAMP)"
+
+python-deps: $(PYTHON_DEPS_STAMP) ## Install Python/Ansible dependencies compatible with the current Python.
+
+validate: python-deps ## Validate YAML, Helm chart structure, scripts, and config catalogs.
 	python3 scripts/validate.py
 	python3 scripts/images/validate-images.py
 
@@ -86,7 +98,7 @@ lint: ## Run local static checks that mirror the CI static gate.
 configure: ## Update selected runtime defaults in Helm values.
 	python3 scripts/configure.py --engine $(ENGINE) --ingress-controller $(INGRESS) --webserver $(WEB) --database $(DB) --observability $(OBS) --values $(VALUES)
 
-import-check: ## Check an external Compose project before importing or migrating it.
+import-check: python-deps ## Check an external Compose project before importing or migrating it.
 	@if [ -z "$(PROJECT_PATH)" ]; then \
 		echo "Set PROJECT_PATH=/path/to/compose-project, for example: make import-check PROJECT_PATH=/path/to/compose-project"; \
 		exit 2; \
@@ -97,7 +109,7 @@ import-plan: MIGRATION_STAGE = prepare
 import-plan: ## Generate private import diagnostics and action plan without applying changes.
 	$(MAKE) import-migrate MIGRATION_STAGE=prepare MIGRATION_EXECUTE=false
 
-import-migrate: ## Generate or execute guarded migration automation for an external Compose project.
+import-migrate: python-deps ## Generate or execute guarded migration automation for an external Compose project.
 	@if [ -z "$(PROJECT_PATH)" ]; then \
 		echo "Set PROJECT_PATH=/path/to/compose-project, for example: make import-migrate PROJECT_PATH=/path/to/compose-project"; \
 		exit 2; \
@@ -108,7 +120,7 @@ import-auto: MIGRATION_AUTO_REPAIR_CLUSTER = true
 import-auto: operator-kubeconfig ## Run the full import migration workflow with preparation, execution, and validation.
 	$(MAKE) import-migrate MIGRATION_STAGE=all MIGRATION_EXECUTE=true
 
-$(ANSIBLE_COLLECTIONS_STAMP): $(ANSIBLE_COLLECTION_REQUIREMENTS)
+$(ANSIBLE_COLLECTIONS_STAMP): $(ANSIBLE_COLLECTION_REQUIREMENTS) $(PYTHON_DEPS_STAMP)
 	mkdir -p .ansible/collections
 	ANSIBLE_CONFIG=$(ANSIBLE_CONFIG) $(ANSIBLE_GALAXY) collection install -r $(ANSIBLE_COLLECTION_REQUIREMENTS) --force
 	touch $(ANSIBLE_COLLECTIONS_STAMP)
