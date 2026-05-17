@@ -269,6 +269,34 @@
             },
             "secretName": {
               "type": "string"
+            },
+            "createSecret": {
+              "type": "boolean"
+            },
+            "selfSigned": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "durationDays": {
+                  "type": "integer",
+                  "minimum": 1
+                }
+              }
+            },
+            "certificate": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "crt": {
+                  "type": "string"
+                },
+                "key": {
+                  "type": "string"
+                }
+              }
             }
           },
           "required": [

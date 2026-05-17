@@ -5,13 +5,16 @@ from __future__ import annotations
 import argparse
 import base64
 import hashlib
+import ipaddress
 import json
 import os
 import re
 import shlex
+import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 from pathlib import Path
 from typing import Any
@@ -335,15 +338,46 @@ def registry_host(registry: str) -> str:
     return registry.split("/", 1)[0]
 
 
+def container_tool(args: argparse.Namespace) -> str:
+    cached = getattr(args, "_container_tool", "")
+    if cached:
+        return str(cached)
+
+    requested = args.container_tool
+    if requested != "auto":
+        if shutil.which(requested):
+            setattr(args, "_container_tool", requested)
+            return requested
+        raise SystemExit(
+            f"Container tool `{requested}` was requested but is not installed on the operator machine.\n"
+            "Install it, set MIGRATION_CONTAINER_TOOL to an available tool, or use MIGRATION_IMAGE_MODE=skip."
+        )
+
+    for candidate in ("docker", "podman"):
+        if shutil.which(candidate):
+            setattr(args, "_container_tool", candidate)
+            return candidate
+
+    raise SystemExit(
+        "Image migration requires a local container CLI on the operator machine, but neither `docker` nor `podman` was found.\n"
+        "Install Docker or Podman on urban-ops-01, then rerun import-auto. On RedHat-family hosts, Podman is usually enough: `sudo dnf install -y podman`.\n"
+        "If you want to continue without building/preloading application images, rerun with MIGRATION_IMAGE_MODE=skip."
+    )
+
+
+def container_command(args: argparse.Namespace, *parts: str) -> list[str]:
+    return [container_tool(args), *parts]
+
+
 def ensure_registry_login(args: argparse.Namespace) -> None:
     if not args.execute or args.image_mode != "registry" or not args.registry:
         return
     username = os.environ.get("MIGRATION_REGISTRY_USERNAME")
     password = os.environ.get("MIGRATION_REGISTRY_PASSWORD")
     if not username or not password:
-        print("Registry credentials were not provided in MIGRATION_REGISTRY_USERNAME/MIGRATION_REGISTRY_PASSWORD; using existing Docker login state.")
+        print(f"Registry credentials were not provided in MIGRATION_REGISTRY_USERNAME/MIGRATION_REGISTRY_PASSWORD; using existing {container_tool(args)} login state.")
         return
-    run_command(["docker", "login", registry_host(args.registry), "--username", username, "--password-stdin"], stdin=password)
+    run_command(container_command(args, "login", registry_host(args.registry), "--username", username, "--password-stdin"), stdin=password)
 
 
 def image_archive_name(record: import_project.ServiceRecord) -> str:
@@ -356,8 +390,8 @@ def local_import_image(args: argparse.Namespace, record: import_project.ServiceR
     return f"urban-platform-import/{k8s_name(record.name)}:{args.image_tag}"
 
 
-def docker_image_exists(image: str) -> bool:
-    return subprocess.run(["docker", "image", "inspect", image], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+def container_image_exists(args: argparse.Namespace, image: str) -> bool:
+    return subprocess.run(container_command(args, "image", "inspect", image), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
 def pullable_image(image: import_project.ImageRef) -> bool:
@@ -367,24 +401,24 @@ def pullable_image(image: import_project.ImageRef) -> bool:
     return "/" in image.repository or "." in first_segment or ":" in first_segment
 
 
-def ensure_source_image(record: import_project.ServiceRecord) -> tuple[bool, bool]:
+def ensure_source_image(args: argparse.Namespace, record: import_project.ServiceRecord) -> tuple[bool, bool]:
     if record.image is None:
         return False, False
     source = record.image.display
-    if docker_image_exists(source):
+    if container_image_exists(args, source):
         return True, False
     if pullable_image(record.image):
         print(f"Source image {source} is not local; pulling it before import.")
-        pull = subprocess.run(["docker", "pull", source])
+        pull = subprocess.run(container_command(args, "pull", source))
         return pull.returncode == 0, pull.returncode == 0
     print(f"Source image {source} is not local and does not look pullable; skipping {record.name}.")
     return False, False
 
 
-def cleanup_operator_docker_tags(images: list[str]) -> None:
+def cleanup_operator_container_tags(args: argparse.Namespace, images: list[str]) -> None:
     for image in sorted(set(images)):
-        if docker_image_exists(image):
-            run_cleanup_command(["docker", "image", "rm", image])
+        if container_image_exists(args, image):
+            run_cleanup_command(container_command(args, "image", "rm", image))
 
 
 def cleanup_operator_archives(archive_dir: Path) -> None:
@@ -752,6 +786,9 @@ def generate_bundle(
         f'MIGRATION_OUTPUT="${{MIGRATION_OUTPUT:-{output}}}"\n'
         f'MIGRATION_PRIVATE_DIR="${{MIGRATION_PRIVATE_DIR:-{args.private_dir}}}"\n'
         f'MIGRATION_KUBECONFIG="${{MIGRATION_KUBECONFIG:-{args.kubeconfig}}}"\n'
+        f'MIGRATION_INGRESS_HOST="${{MIGRATION_INGRESS_HOST:-{args.ingress_host}}}"\n'
+        f'MIGRATION_TLS_CERT_FILE="${{MIGRATION_TLS_CERT_FILE:-{args.tls_cert_file}}}"\n'
+        f'MIGRATION_TLS_KEY_FILE="${{MIGRATION_TLS_KEY_FILE:-{args.tls_key_file}}}"\n'
         f'MIGRATION_IMAGE_MODE="${{MIGRATION_IMAGE_MODE:-{args.image_mode}}}"\n'
         f'MIGRATION_IMAGE_OUTPUT_DIR="${{MIGRATION_IMAGE_OUTPUT_DIR:-{args.image_output_dir}}}"\n'
         f'MIGRATION_RKE2_NODES="${{MIGRATION_RKE2_NODES:-{args.rke2_nodes}}}"\n'
@@ -759,6 +796,7 @@ def generate_bundle(
         f'MIGRATION_SSH_USER="${{MIGRATION_SSH_USER:-{args.ssh_user}}}"\n'
         f'MIGRATION_SSH_KEY="${{MIGRATION_SSH_KEY:-{args.ssh_key}}}"\n'
         f'MIGRATION_BECOME_PASSWORD_FILE="${{MIGRATION_BECOME_PASSWORD_FILE:-{args.become_password_file}}}"\n'
+        f'MIGRATION_CONTAINER_TOOL="${{MIGRATION_CONTAINER_TOOL:-{args.container_tool}}}"\n'
         f'MIGRATION_RKE2_IMPORT_IMAGES="${{MIGRATION_RKE2_IMPORT_IMAGES:-{str(args.rke2_import_images).lower()}}}"\n'
         f'MIGRATION_CLEANUP_OPERATOR_IMAGES="${{MIGRATION_CLEANUP_OPERATOR_IMAGES:-{str(args.cleanup_operator_images).lower()}}}"\n'
         f'MIGRATION_SKIP_DOCKER_SOCKET_SERVICES="${{MIGRATION_SKIP_DOCKER_SOCKET_SERVICES:-{str(args.skip_docker_socket_services).lower()}}}"\n'
@@ -780,10 +818,12 @@ def generate_bundle(
         'python3 "$REPO_ROOT/scripts/migrate_project.py" '
         '--project-path "$PROJECT_PATH" --values "$VALUES" --namespace "$NAMESPACE" '
         '--output "$MIGRATION_OUTPUT" --private-dir "$MIGRATION_PRIVATE_DIR" --kubeconfig "$MIGRATION_KUBECONFIG" --auto-prepare '
+        '--ingress-host "$MIGRATION_INGRESS_HOST" --tls-cert-file "$MIGRATION_TLS_CERT_FILE" --tls-key-file "$MIGRATION_TLS_KEY_FILE" '
         '--image-mode "$MIGRATION_IMAGE_MODE" --image-output-dir "$MIGRATION_IMAGE_OUTPUT_DIR" '
         '--rke2-nodes "$MIGRATION_RKE2_NODES" --rke2-image-dir "$MIGRATION_RKE2_IMAGE_DIR" '
         '--ssh-user "$MIGRATION_SSH_USER" --ssh-key "$MIGRATION_SSH_KEY" '
         '--become-password-file "$MIGRATION_BECOME_PASSWORD_FILE" '
+        '--container-tool "$MIGRATION_CONTAINER_TOOL" '
         '$RKE2_IMPORT_FLAG $CLEANUP_OPERATOR_IMAGES_FLAG $DOCKER_SOCKET_FLAG '
         '--registry "$MIGRATION_REGISTRY" --image-tag "$MIGRATION_IMAGE_TAG" '
         '--dump-dir "$MIGRATION_DUMP_DIR" --db-targets "$MIGRATION_DB_TARGETS" '
@@ -886,6 +926,7 @@ def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: li
         return
     if args.image_mode == "registry" and not args.registry:
         raise SystemExit("Refusing image promotion without --registry or MIGRATION_REGISTRY.")
+    print(f"Using container CLI for image migration: {container_tool(args)}")
     ensure_registry_login(args)
     archive_dir = Path(args.image_output_dir).expanduser()
     if args.image_mode == "preload":
@@ -906,22 +947,22 @@ def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: li
                 else:
                     context = compose_path.parent / str(build)
                     dockerfile = "Dockerfile"
-                run_command(["docker", "build", "-t", target_image, "-f", dockerfile, "."], cwd=context.resolve())
+                run_command(container_command(args, "build", "-t", target_image, "-f", dockerfile, "."), cwd=context.resolve())
             elif record.image:
-                source_ready, source_pulled = ensure_source_image(record)
+                source_ready, source_pulled = ensure_source_image(args, record)
                 if not source_ready:
                     skipped.append(f"{record.file}::{record.name} ({record.image.display})")
                     continue
                 if source_pulled:
                     pulled_source_images.append(record.image.display)
-                run_command(["docker", "tag", record.image.display, target_image])
+                run_command(container_command(args, "tag", record.image.display, target_image))
             generated_images.append(target_image)
             if args.image_mode == "registry":
-                run_command(["docker", "push", target_image])
+                run_command(container_command(args, "push", target_image))
             elif args.image_mode == "preload":
-                run_command(["docker", "save", "-o", str(archive_dir / image_archive_name(record)), target_image])
+                run_command(container_command(args, "save", "-o", str(archive_dir / image_archive_name(record)), target_image))
             if args.cleanup_operator_images:
-                cleanup_operator_docker_tags([target_image])
+                cleanup_operator_container_tags(args, [target_image])
         except subprocess.CalledProcessError as exc:
             failed.append(f"{record.file}::{record.name} ({exc.cmd})")
     if args.image_mode == "preload":
@@ -929,7 +970,7 @@ def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: li
         if args.cleanup_operator_images and archives_copied:
             cleanup_operator_archives(archive_dir)
     if args.cleanup_operator_images:
-        cleanup_operator_docker_tags(generated_images + pulled_source_images)
+        cleanup_operator_container_tags(args, generated_images + pulled_source_images)
     if skipped:
         print("Skipped image candidates:")
         for item in skipped:
@@ -1004,12 +1045,144 @@ def stage_databases(args: argparse.Namespace, service_pairs: list[tuple[import_p
             print(f"Dumped {alias}; no usable target mapping found in {db_targets_path}, so restore was skipped.")
 
 
-def stage_manifests(args: argparse.Namespace, service_pairs: list[tuple[import_project.ServiceRecord, dict[str, Any]]]) -> None:
+def ingress_host(args: argparse.Namespace, values: dict[str, Any]) -> str:
+    return str(
+        args.ingress_host
+        or values.get("ingress", {}).get("host", "")
+        or values.get("global", {}).get("cluster", {}).get("domain", "")
+    )
+
+
+def ingress_tls_secret_name(values: dict[str, Any]) -> str:
+    return str(values.get("ingress", {}).get("tls", {}).get("secretName") or "urban-platform-tls")
+
+
+def kubernetes_secret_exists(args: argparse.Namespace, name: str) -> bool:
+    command = kubectl_command(args, ["-n", args.namespace, "get", "secret", name, "--request-timeout=15s"])
+    return subprocess.run(command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
+
+
+def ingress_san(host: str) -> str:
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return f"DNS:{host}"
+    return f"IP:{host}"
+
+
+def apply_tls_secret_from_files(args: argparse.Namespace, name: str, cert_file: Path, key_file: Path) -> None:
+    create_command = kubectl_command(
+        args,
+        [
+            "-n",
+            args.namespace,
+            "create",
+            "secret",
+            "tls",
+            name,
+            "--cert",
+            str(cert_file),
+            "--key",
+            str(key_file),
+            "--dry-run=client",
+            "-o",
+            "yaml",
+        ],
+    )
+    result = subprocess.run(create_command, text=True, capture_output=True, check=True)
+    run_command(kubectl_command(args, ["-n", args.namespace, "apply", "--validate=false", "-f", "-"]), stdin=result.stdout)
+
+
+def ensure_ingress_tls_secret(args: argparse.Namespace, values: dict[str, Any], host: str) -> None:
+    tls_values = values.get("ingress", {}).get("tls", {})
+    if not tls_values.get("enabled", True):
+        return
+    secret_name = ingress_tls_secret_name(values)
+    if kubernetes_secret_exists(args, secret_name):
+        print(f"Ingress TLS secret already exists: {secret_name}")
+        return
+
+    cert_file_arg = args.tls_cert_file
+    key_file_arg = args.tls_key_file
+    if cert_file_arg or key_file_arg:
+        if not cert_file_arg or not key_file_arg:
+            raise SystemExit("Both MIGRATION_TLS_CERT_FILE and MIGRATION_TLS_KEY_FILE are required when providing an ingress certificate.")
+        cert_file = Path(cert_file_arg).expanduser()
+        key_file = Path(key_file_arg).expanduser()
+        if not cert_file.is_file() or not key_file.is_file():
+            raise SystemExit(f"Provided ingress TLS files were not found: cert={cert_file} key={key_file}")
+        print(f"Creating ingress TLS secret {secret_name} from provided certificate files.")
+        apply_tls_secret_from_files(args, secret_name, cert_file, key_file)
+        return
+
+    if not host:
+        raise SystemExit("Cannot create a self-signed ingress certificate without MIGRATION_INGRESS_HOST, MIGRATION_CLUSTER_DOMAIN, ingress.host, or global.cluster.domain.")
+    if not shutil.which("openssl"):
+        raise SystemExit("Cannot create default self-signed ingress certificate because `openssl` is not installed on the operator machine.")
+
+    duration_days = int(tls_values.get("selfSigned", {}).get("durationDays", 3650))
+    with tempfile.TemporaryDirectory(prefix="urban-platform-tls-") as tmp_dir:
+        cert_file = Path(tmp_dir) / "tls.crt"
+        key_file = Path(tmp_dir) / "tls.key"
+        run_command(
+            [
+                "openssl",
+                "req",
+                "-x509",
+                "-nodes",
+                "-newkey",
+                "rsa:2048",
+                "-days",
+                str(duration_days),
+                "-subj",
+                f"/CN={host}",
+                "-addext",
+                f"subjectAltName={ingress_san(host)}",
+                "-keyout",
+                str(key_file),
+                "-out",
+                str(cert_file),
+            ]
+        )
+        print(f"Creating self-signed ingress TLS secret {secret_name} for {host}.")
+        apply_tls_secret_from_files(args, secret_name, cert_file, key_file)
+
+
+def stage_manifests(args: argparse.Namespace, service_pairs: list[tuple[import_project.ServiceRecord, dict[str, Any]]], values: dict[str, Any]) -> None:
     output = Path(args.output).expanduser()
     manifests: list[dict[str, Any]] = []
+    host = ingress_host(args, values)
+    tls_enabled = bool(values.get("ingress", {}).get("tls", {}).get("enabled", True))
+    tls_secret_name = ingress_tls_secret_name(values)
     for record, service in service_pairs:
         if record.kind == "nginx" and import_project.has_edge_publish(record.ports):
             name = k8s_name(record.name)
+            rule: dict[str, Any] = {
+                "http": {
+                    "paths": [
+                        {
+                            "path": "/",
+                            "pathType": "Prefix",
+                            "backend": {
+                                "service": {"name": name, "port": {"number": 80}}
+                            },
+                        }
+                    ]
+                }
+            }
+            if host:
+                rule["host"] = host
+            spec: dict[str, Any] = {
+                "ingressClassName": "traefik",
+                "rules": [rule],
+            }
+            annotations = {"traefik.ingress.kubernetes.io/router.entrypoints": "websecure"}
+            if tls_enabled:
+                tls_entry: dict[str, Any] = {"secretName": tls_secret_name}
+                if host:
+                    tls_entry["hosts"] = [host]
+                spec["tls"] = [tls_entry]
+                annotations["traefik.ingress.kubernetes.io/router.tls"] = "true"
             manifests.append(
                 {
                     "apiVersion": "networking.k8s.io/v1",
@@ -1017,26 +1190,9 @@ def stage_manifests(args: argparse.Namespace, service_pairs: list[tuple[import_p
                     "metadata": {
                         "name": f"{name}-traefik",
                         "namespace": args.namespace,
-                        "annotations": {"traefik.ingress.kubernetes.io/router.entrypoints": "websecure"},
+                        "annotations": annotations,
                     },
-                    "spec": {
-                        "ingressClassName": "traefik",
-                        "rules": [
-                            {
-                                "http": {
-                                    "paths": [
-                                        {
-                                            "path": "/",
-                                            "pathType": "Prefix",
-                                            "backend": {
-                                                "service": {"name": name, "port": {"number": 80}}
-                                            },
-                                        }
-                                    ]
-                                }
-                            }
-                        ],
-                    },
+                    "spec": spec,
                 }
             )
     content = GENERATED_HEADER + yaml.safe_dump_all(manifests, sort_keys=False)
@@ -1044,6 +1200,7 @@ def stage_manifests(args: argparse.Namespace, service_pairs: list[tuple[import_p
     write_file(path, content)
     print(f"Wrote {path}")
     if args.execute and manifests:
+        ensure_ingress_tls_secret(args, values, host)
         run_command(kubectl_command(args, ["-n", args.namespace, "apply", "--validate=false", "-f", str(path)]))
 
 
@@ -1085,6 +1242,9 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--output", default="reports/import-migration")
     parser.add_argument("--namespace", default="urban-platform")
     parser.add_argument("--kubeconfig", default=os.environ.get("KUBECONFIG", ""))
+    parser.add_argument("--ingress-host", default=os.environ.get("MIGRATION_INGRESS_HOST", os.environ.get("MIGRATION_CLUSTER_DOMAIN", "")))
+    parser.add_argument("--tls-cert-file", default=os.environ.get("MIGRATION_TLS_CERT_FILE", ""))
+    parser.add_argument("--tls-key-file", default=os.environ.get("MIGRATION_TLS_KEY_FILE", ""))
     parser.add_argument("--ingress-controller", choices=["traefik", "nginx"], default="traefik")
     parser.add_argument("--webserver", choices=["nginx", "apache-httpd", "apache-tomcat", "traefik"], default="nginx")
     parser.add_argument("--database", default="postgresql")
@@ -1095,6 +1255,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--ssh-user", default="root")
     parser.add_argument("--ssh-key", default="")
     parser.add_argument("--become-password-file", default=os.environ.get("MIGRATION_BECOME_PASSWORD_FILE", ""))
+    parser.add_argument("--container-tool", default=os.environ.get("MIGRATION_CONTAINER_TOOL", "auto"))
     parser.add_argument("--rke2-import-images", dest="rke2_import_images", action="store_true", default=True)
     parser.add_argument("--no-rke2-import-images", dest="rke2_import_images", action="store_false")
     parser.add_argument("--cleanup-operator-images", dest="cleanup_operator_images", action="store_true", default=True)
@@ -1137,7 +1298,7 @@ def main(argv: list[str]) -> int:
     if args.stage in {"databases", "all"}:
         stage_databases(args, service_pairs)
     if args.stage in {"manifests", "all"}:
-        stage_manifests(args, service_pairs)
+        stage_manifests(args, service_pairs, values)
     if args.stage in {"validate", "all"}:
         stage_validate(args)
     return 0

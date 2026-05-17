@@ -1,5 +1,7 @@
 {{- $providerName := .Values.webserver.provider | default "nginx" -}}
 {{- $provider := index .Values.webserver.providers $providerName -}}
+{{- $ingressHost := include "cip.ingressHost" . -}}
+{{- $ingressTlsSecretName := include "cip.ingressTlsSecretName" . -}}
 {{- if $provider }}
 ---
 apiVersion: apps/v1
@@ -105,14 +107,14 @@ spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
   {{- if .Values.ingress.tls.enabled }}
   tls:
-    - secretName: {{ .Values.ingress.tls.secretName | quote }}
-      {{- if .Values.ingress.host }}
-      hosts: [{{ .Values.ingress.host | quote }}]
+    - secretName: {{ $ingressTlsSecretName | quote }}
+      {{- if $ingressHost }}
+      hosts: [{{ $ingressHost | quote }}]
       {{- end }}
   {{- end }}
   rules:
-    {{- if .Values.ingress.host }}
-    - host: {{ .Values.ingress.host | quote }}
+    {{- if $ingressHost }}
+    - host: {{ $ingressHost | quote }}
       http:
     {{- else }}
     - http:
@@ -138,8 +140,8 @@ metadata:
 spec:
   ingressClassName: {{ .Values.ingress.className | quote }}
   rules:
-    {{- if .Values.ingress.host }}
-    - host: {{ .Values.ingress.host | quote }}
+    {{- if $ingressHost }}
+    - host: {{ $ingressHost | quote }}
       http:
     {{- else }}
     - http:

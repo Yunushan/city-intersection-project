@@ -44,6 +44,9 @@ MIGRATION_KUBECONFIG ?= $(OPERATOR_KUBECONFIG)
 MIGRATION_CLUSTER_VIP ?=
 MIGRATION_KUBERNETES_API_VIP_PORT ?=
 MIGRATION_CLUSTER_DOMAIN ?=
+MIGRATION_INGRESS_HOST ?= $(MIGRATION_CLUSTER_DOMAIN)
+MIGRATION_TLS_CERT_FILE ?=
+MIGRATION_TLS_KEY_FILE ?=
 MIGRATION_RKE2_VERSION ?=
 MIGRATION_AUTO_REPAIR_CLUSTER ?= false
 MIGRATION_KEEPALIVED_AUTH_PASS ?=
@@ -58,6 +61,7 @@ MIGRATION_SKIP_DOCKER_SOCKET_SERVICES ?= true
 MIGRATION_SSH_USER ?= root
 MIGRATION_SSH_KEY ?=
 MIGRATION_BECOME_PASSWORD_FILE ?=
+MIGRATION_CONTAINER_TOOL ?= auto
 MIGRATION_REGISTRY ?=
 MIGRATION_IMAGE_TAG ?= imported-0.1.0
 MIGRATION_NAMESPACE ?= $(NAMESPACE)
@@ -115,7 +119,7 @@ import-migrate: python-deps ## Generate or execute guarded migration automation 
 		echo "Set PROJECT_PATH=/path/to/compose-project, for example: make import-migrate PROJECT_PATH=/path/to/compose-project"; \
 		exit 2; \
 	fi
-	python3 scripts/migrate_project.py --project-path "$(PROJECT_PATH)" --values "$(VALUES)" --output "$(MIGRATION_OUTPUT)" --private-dir "$(MIGRATION_PRIVATE_DIR)" --namespace "$(MIGRATION_NAMESPACE)" --kubeconfig "$(MIGRATION_KUBECONFIG)" --ingress-controller "$(INGRESS)" --webserver "$(WEB)" --database "$(DB)" --image-mode "$(MIGRATION_IMAGE_MODE)" --image-output-dir "$(MIGRATION_IMAGE_OUTPUT_DIR)" --rke2-nodes "$(MIGRATION_RKE2_NODES)" --rke2-image-dir "$(MIGRATION_RKE2_IMAGE_DIR)" --ssh-user "$(MIGRATION_SSH_USER)" --ssh-key "$(MIGRATION_SSH_KEY)" --become-password-file "$(MIGRATION_BECOME_PASSWORD_FILE)" --registry "$(MIGRATION_REGISTRY)" --image-tag "$(MIGRATION_IMAGE_TAG)" --dump-dir "$(MIGRATION_DUMP_DIR)" --db-targets "$(MIGRATION_DB_TARGETS)" --stage "$(MIGRATION_STAGE)" $(if $(filter true,$(MIGRATION_AUTO_PREPARE)),--auto-prepare,) $(if $(filter true,$(IMPORT_REDACT)),--redact-sensitive,) $(if $(filter true,$(MIGRATION_EXECUTE)),--execute,) $(if $(filter true,$(MIGRATION_ALLOW_SECRET_MATERIAL)),--allow-secret-material,) $(if $(filter false,$(MIGRATION_RKE2_IMPORT_IMAGES)),--no-rke2-import-images,--rke2-import-images) $(if $(filter false,$(MIGRATION_CLEANUP_OPERATOR_IMAGES)),--no-cleanup-operator-images,--cleanup-operator-images) $(if $(filter false,$(MIGRATION_SKIP_DOCKER_SOCKET_SERVICES)),--include-docker-socket-services,--skip-docker-socket-services)
+	python3 scripts/migrate_project.py --project-path "$(PROJECT_PATH)" --values "$(VALUES)" --output "$(MIGRATION_OUTPUT)" --private-dir "$(MIGRATION_PRIVATE_DIR)" --namespace "$(MIGRATION_NAMESPACE)" --kubeconfig "$(MIGRATION_KUBECONFIG)" --ingress-host "$(MIGRATION_INGRESS_HOST)" --tls-cert-file "$(MIGRATION_TLS_CERT_FILE)" --tls-key-file "$(MIGRATION_TLS_KEY_FILE)" --ingress-controller "$(INGRESS)" --webserver "$(WEB)" --database "$(DB)" --image-mode "$(MIGRATION_IMAGE_MODE)" --image-output-dir "$(MIGRATION_IMAGE_OUTPUT_DIR)" --rke2-nodes "$(MIGRATION_RKE2_NODES)" --rke2-image-dir "$(MIGRATION_RKE2_IMAGE_DIR)" --ssh-user "$(MIGRATION_SSH_USER)" --ssh-key "$(MIGRATION_SSH_KEY)" --become-password-file "$(MIGRATION_BECOME_PASSWORD_FILE)" --container-tool "$(MIGRATION_CONTAINER_TOOL)" --registry "$(MIGRATION_REGISTRY)" --image-tag "$(MIGRATION_IMAGE_TAG)" --dump-dir "$(MIGRATION_DUMP_DIR)" --db-targets "$(MIGRATION_DB_TARGETS)" --stage "$(MIGRATION_STAGE)" $(if $(filter true,$(MIGRATION_AUTO_PREPARE)),--auto-prepare,) $(if $(filter true,$(IMPORT_REDACT)),--redact-sensitive,) $(if $(filter true,$(MIGRATION_EXECUTE)),--execute,) $(if $(filter true,$(MIGRATION_ALLOW_SECRET_MATERIAL)),--allow-secret-material,) $(if $(filter false,$(MIGRATION_RKE2_IMPORT_IMAGES)),--no-rke2-import-images,--rke2-import-images) $(if $(filter false,$(MIGRATION_CLEANUP_OPERATOR_IMAGES)),--no-cleanup-operator-images,--cleanup-operator-images) $(if $(filter false,$(MIGRATION_SKIP_DOCKER_SOCKET_SERVICES)),--include-docker-socket-services,--skip-docker-socket-services)
 
 import-auto: MIGRATION_AUTO_REPAIR_CLUSTER = true
 import-auto: operator-kubeconfig ## Run the full import migration workflow with preparation, execution, and validation.

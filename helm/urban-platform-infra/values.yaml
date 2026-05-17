@@ -50,6 +50,13 @@ ingress:
   tls:
     enabled: true
     secretName: urban-platform-tls
+    createSecret: true
+    selfSigned:
+      enabled: true
+      durationDays: 3650
+    certificate:
+      crt: ''
+      key: ''
 secretManagement:
   enabled: false
   provider: external-secrets

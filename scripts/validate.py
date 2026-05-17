@@ -523,9 +523,13 @@ helpers_template_text = (ROOT / 'helm/urban-platform-infra/templates/_helpers.tp
 traefik_middleware_template_text = (
     ROOT / 'helm/urban-platform-infra/templates/ingress-traefik-middleware.yaml'
 ).read_text(encoding='utf-8')
+ingress_tls_secret_template_text = (
+    ROOT / 'helm/urban-platform-infra/templates/ingress-tls-secret.yaml'
+).read_text(encoding='utf-8')
 for ingress_template_token in [
     'include "cip.ingressAnnotations"',
-    'secretName: {{ $.Values.ingress.tls.secretName | quote }}',
+    'secretName: {{ $ingressTlsSecretName | quote }}',
+    'include "cip.ingressHost"',
 ]:
     if ingress_template_token not in workload_template_text:
         errors.append(f'Workload ingress template missing HTTPS token: {ingress_template_token}')
@@ -537,6 +541,7 @@ for webserver_ingress_token in [
     'include "cip.ingressAnnotations"',
     'name: webserver-redirect',
     'include "cip.traefikHttpRedirectAnnotations"',
+    'secretName: {{ $ingressTlsSecretName | quote }}',
     'podSecurityContext',
     'resources:',
 ]:
@@ -547,6 +552,8 @@ for traefik_redirect_token in [
     'cip.traefikHttpRedirectAnnotations',
     'router.entrypoints: "web"',
     'router.middlewares',
+    'cip.ingressHost',
+    'cip.ingressTlsSecretName',
 ]:
     if traefik_redirect_token not in helpers_template_text:
         errors.append(f'Ingress helpers missing Traefik redirect token: {traefik_redirect_token}')
@@ -559,6 +566,16 @@ for traefik_middleware_token in [
 ]:
     if traefik_middleware_token not in traefik_middleware_template_text:
         errors.append(f'Traefik middleware template missing redirect token: {traefik_middleware_token}')
+for ingress_tls_token in [
+    'kind: Secret',
+    'type: kubernetes.io/tls',
+    'genSelfSignedCert',
+    'urban-platform.io/tls-source',
+    'hasKey $tls "createSecret"',
+    '$tls.certificate',
+]:
+    if ingress_tls_token not in ingress_tls_secret_template_text:
+        errors.append(f'Ingress TLS secret template missing token: {ingress_tls_token}')
 
 cnpg_cluster_template_text = (ROOT / 'helm/urban-platform-infra/templates/databases-cnpg.yaml').read_text(encoding='utf-8')
 for cnpg_cluster_token in ['imageCatalogRef:', 'imageName:', '$db.imageCatalogRef.major']:

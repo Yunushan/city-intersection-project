@@ -68,6 +68,14 @@ traefik.ingress.kubernetes.io/router.tls: "true"
 {{- end }}
 {{- end -}}
 
+{{- define "cip.ingressHost" -}}
+{{- .Values.ingress.host | default .Values.global.cluster.domain -}}
+{{- end -}}
+
+{{- define "cip.ingressTlsSecretName" -}}
+{{- .Values.ingress.tls.secretName | default "urban-platform-tls" -}}
+{{- end -}}
+
 {{- define "cip.traefikRedirectMiddlewareRef" -}}
 {{- printf "%s-redirect-https@kubernetescrd" (include "cip.namespace" .) -}}
 {{- end -}}

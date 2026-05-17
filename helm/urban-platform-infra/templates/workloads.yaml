@@ -1,6 +1,8 @@
 {{- range $name, $svc := .Values.workloads }}
 {{- if $svc.enabled }}
 {{- $kind := default "Deployment" $svc.kind }}
+{{- $ingressHost := include "cip.ingressHost" $ }}
+{{- $ingressTlsSecretName := include "cip.ingressTlsSecretName" $ }}
 ---
 apiVersion: apps/v1
 kind: {{ $kind }}
@@ -217,14 +219,14 @@ spec:
   ingressClassName: {{ $.Values.ingress.className | quote }}
   {{- if $.Values.ingress.tls.enabled }}
   tls:
-    - secretName: {{ $.Values.ingress.tls.secretName | quote }}
-      {{- if $.Values.ingress.host }}
-      hosts: [{{ $.Values.ingress.host | quote }}]
+    - secretName: {{ $ingressTlsSecretName | quote }}
+      {{- if $ingressHost }}
+      hosts: [{{ $ingressHost | quote }}]
       {{- end }}
   {{- end }}
   rules:
-    {{- if $.Values.ingress.host }}
-    - host: {{ $.Values.ingress.host | quote }}
+    {{- if $ingressHost }}
+    - host: {{ $ingressHost | quote }}
       http:
     {{- else }}
     - http:
