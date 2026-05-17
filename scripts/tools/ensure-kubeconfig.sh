@@ -684,7 +684,7 @@ if [ ! -f "${INVENTORY_PATH}" ]; then
         run_cluster_repair
         export MIGRATION_AUTO_REPAIR_CLUSTER=false
         echo "Retrying operator kubeconfig after automatic cluster reconciliation."
-        exec "$0"
+        exec bash "$0"
       fi
       exit 1
     fi
