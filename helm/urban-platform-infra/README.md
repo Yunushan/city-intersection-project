@@ -21,7 +21,7 @@ Switches are handled in `values.yaml`:
 - `databases.provider`: `cloudnative-pg` by default; use catalog profiles for alternatives
 - `observability.profile`: `elasticsearch`, `loki`, `opensearch`, `graylog`, `clickhouse`
 - Default observability stack: Elastic ECK + Prometheus/Grafana + OpenTelemetry Collector
-- `ingress.tls.enabled`: enabled by default with HTTP to HTTPS redirect. The chart creates `ingress.tls.secretName` with a self-signed certificate when no certificate is supplied. For production, either set `ingress.tls.createSecret=false` and point `ingress.tls.secretName` at an existing TLS secret, provide `ingress.tls.certificate.crt` and `ingress.tls.certificate.key`, or enable the `secretManagement.externalSecrets.ingressTls` mapping.
+- `ingress.tls.enabled`: enabled by default with HTTP to HTTPS redirect. The chart renders cert-manager `Issuer` and `Certificate` resources by default, so cert-manager creates `ingress.tls.secretName` without the chart rendering a plain Kubernetes Secret. For production, set `ingress.tls.selfSigned.enabled=false` and provide `ingress.tls.certManager.issuerName`, set `ingress.tls.createSecret=false` and point `ingress.tls.secretName` at an existing TLS secret, or enable the `secretManagement.externalSecrets.ingressTls` mapping.
 - `ingress.host`: optional canonical host. When it is empty, the chart uses `global.cluster.domain` for HTTPS routes and the self-signed certificate.
 
 CloudNativePG and ECK CRs require operators. Install them with `make install-operators`.

@@ -273,6 +273,36 @@
             "createSecret": {
               "type": "boolean"
             },
+            "certManager": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "issuerName": {
+                  "type": "string"
+                },
+                "issuerKind": {
+                  "type": "string",
+                  "enum": [
+                    "Issuer",
+                    "ClusterIssuer"
+                  ]
+                },
+                "issuerGroup": {
+                  "type": "string"
+                },
+                "duration": {
+                  "type": "string",
+                  "pattern": "^[0-9]+h$"
+                },
+                "renewBefore": {
+                  "type": "string",
+                  "pattern": "^[0-9]+h$"
+                }
+              }
+            },
             "selfSigned": {
               "type": "object",
               "additionalProperties": false,

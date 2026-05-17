@@ -567,15 +567,17 @@ for traefik_middleware_token in [
     if traefik_middleware_token not in traefik_middleware_template_text:
         errors.append(f'Traefik middleware template missing redirect token: {traefik_middleware_token}')
 for ingress_tls_token in [
-    'kind: Secret',
-    'type: kubernetes.io/tls',
-    'genSelfSignedCert',
+    'apiVersion: cert-manager.io/v1',
+    'kind: Certificate',
+    'kind: {{ $issuerKind }}',
+    'selfSigned: {}',
+    'secretName: {{ $secretName | quote }}',
     'urban-platform.io/tls-source',
     'hasKey $tls "createSecret"',
-    '$tls.certificate',
+    '$tls.certManager',
 ]:
     if ingress_tls_token not in ingress_tls_secret_template_text:
-        errors.append(f'Ingress TLS secret template missing token: {ingress_tls_token}')
+        errors.append(f'Ingress TLS certificate template missing token: {ingress_tls_token}')
 
 cnpg_cluster_template_text = (ROOT / 'helm/urban-platform-infra/templates/databases-cnpg.yaml').read_text(encoding='utf-8')
 for cnpg_cluster_token in ['imageCatalogRef:', 'imageName:', '$db.imageCatalogRef.major']:
@@ -692,8 +694,10 @@ for migration_automation_token in [
     'cleanup_operator_container_tags',
     'cleanup_operator_archives',
     'ensure_source_image',
+    'explicit_pull_reference',
     'container_tool',
-    'container_command(args, "pull", source)',
+    'docker.io/library/',
+    'container_command(args, "pull", pull_source)',
     '--container-tool',
     '--rke2-import-images',
     '--cleanup-operator-images',

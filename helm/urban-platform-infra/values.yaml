@@ -51,6 +51,13 @@ ingress:
     enabled: true
     secretName: urban-platform-tls
     createSecret: true
+    certManager:
+      enabled: true
+      issuerName: ''
+      issuerKind: Issuer
+      issuerGroup: cert-manager.io
+      duration: 87600h
+      renewBefore: 720h
     selfSigned:
       enabled: true
       durationDays: 3650

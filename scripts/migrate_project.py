@@ -394,6 +394,24 @@ def container_image_exists(args: argparse.Namespace, image: str) -> bool:
     return subprocess.run(container_command(args, "image", "inspect", image), stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode == 0
 
 
+def explicit_pull_reference(image: import_project.ImageRef) -> str:
+    if image.variable:
+        return image.display
+    first_segment = image.repository.split("/", 1)[0]
+    has_registry = "." in first_segment or ":" in first_segment or first_segment == "localhost"
+    if has_registry:
+        return image.display
+    repository = image.repository
+    if "/" not in repository:
+        repository = f"library/{repository}"
+    repository = f"docker.io/{repository}"
+    if image.digest:
+        return f"{repository}@{image.digest}"
+    if image.tag:
+        return f"{repository}:{image.tag}"
+    return repository
+
+
 def pullable_image(image: import_project.ImageRef) -> bool:
     if image.variable:
         return False
@@ -401,18 +419,28 @@ def pullable_image(image: import_project.ImageRef) -> bool:
     return "/" in image.repository or "." in first_segment or ":" in first_segment
 
 
-def ensure_source_image(args: argparse.Namespace, record: import_project.ServiceRecord) -> tuple[bool, bool]:
+def ensure_source_image(args: argparse.Namespace, record: import_project.ServiceRecord) -> tuple[bool, list[str]]:
     if record.image is None:
-        return False, False
+        return False, []
     source = record.image.display
     if container_image_exists(args, source):
-        return True, False
+        return True, []
     if pullable_image(record.image):
-        print(f"Source image {source} is not local; pulling it before import.")
-        pull = subprocess.run(container_command(args, "pull", source))
-        return pull.returncode == 0, pull.returncode == 0
+        pull_source = explicit_pull_reference(record.image)
+        if pull_source != source and container_image_exists(args, pull_source):
+            run_command(container_command(args, "tag", pull_source, source))
+            return True, [source]
+        print(f"Source image {source} is not local; pulling {pull_source} before import.")
+        pull = subprocess.run(container_command(args, "pull", pull_source))
+        if pull.returncode != 0:
+            return False, []
+        cleanup_images = [pull_source]
+        if pull_source != source:
+            run_command(container_command(args, "tag", pull_source, source))
+            cleanup_images.append(source)
+        return True, cleanup_images
     print(f"Source image {source} is not local and does not look pullable; skipping {record.name}.")
-    return False, False
+    return False, []
 
 
 def cleanup_operator_container_tags(args: argparse.Namespace, images: list[str]) -> None:
@@ -949,12 +977,11 @@ def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: li
                     dockerfile = "Dockerfile"
                 run_command(container_command(args, "build", "-t", target_image, "-f", dockerfile, "."), cwd=context.resolve())
             elif record.image:
-                source_ready, source_pulled = ensure_source_image(args, record)
+                source_ready, source_cleanup_images = ensure_source_image(args, record)
                 if not source_ready:
                     skipped.append(f"{record.file}::{record.name} ({record.image.display})")
                     continue
-                if source_pulled:
-                    pulled_source_images.append(record.image.display)
+                pulled_source_images.extend(source_cleanup_images)
                 run_command(container_command(args, "tag", record.image.display, target_image))
             generated_images.append(target_image)
             if args.image_mode == "registry":

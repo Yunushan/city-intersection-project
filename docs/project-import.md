@@ -128,10 +128,13 @@ one tool explicitly.
 
 Imported Traefik route candidates use HTTPS by default. `MIGRATION_INGRESS_HOST`
 controls the route host and defaults to `MIGRATION_CLUSTER_DOMAIN`; the Helm
-chart uses `ingress.host` or `global.cluster.domain` the same way. When no TLS
-secret is supplied, the chart creates `ingress.tls.secretName` with a self-signed
-certificate. Set `ingress.tls.createSecret=false` to use an existing TLS secret,
-or provide `ingress.tls.certificate.crt` and `ingress.tls.certificate.key`.
+chart uses `ingress.host` or `global.cluster.domain` the same way. By default,
+the chart renders cert-manager `Issuer` and `Certificate` resources so
+cert-manager creates `ingress.tls.secretName` with a self-signed certificate
+without the chart rendering a plain Kubernetes Secret. Set
+`ingress.tls.createSecret=false` to use an existing TLS secret, use
+`ingress.tls.certManager.issuerName` for a production issuer, or enable
+`secretManagement.externalSecrets.ingressTls`.
 For `import-auto`, set `MIGRATION_TLS_CERT_FILE` and `MIGRATION_TLS_KEY_FILE`
 to create the ingress TLS secret from your certificate files; otherwise the
 import stage creates a self-signed fallback secret for `MIGRATION_INGRESS_HOST`.
