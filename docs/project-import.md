@@ -114,9 +114,11 @@ Image migration has three modes:
   `MIGRATION_RKE2_NODES` is set. This avoids registry login. By default it also
   verifies the tar archives on each node and imports them into the running RKE2
   containerd socket when that socket is available. The operator machine is used
-  only as a staging point; generated import tags and copied tar archives are
-  cleaned up automatically after successful node preload unless
-  `MIGRATION_CLEANUP_OPERATOR_IMAGES=false` is set.
+  only as a staging point; generated import tags, local preload archives, and
+  dangling container build cache are cleaned up automatically unless
+  `MIGRATION_CLEANUP_OPERATOR_IMAGES=false` is set. Set
+  `MIGRATION_PRUNE_OPERATOR_CACHE=false` only when you intentionally want to keep
+  dangling Podman/Docker build cache on the operator for debugging.
 - `MIGRATION_IMAGE_MODE=skip` leaves application image movement out of the
   migration run. Use this when keeping the existing Compose deployment running
   temporarily behind external routing.

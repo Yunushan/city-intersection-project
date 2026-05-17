@@ -455,6 +455,14 @@ def cleanup_operator_container_tags(args: argparse.Namespace, images: list[str])
             run_cleanup_command(container_command(args, "image", "rm", image))
 
 
+def prune_operator_container_cache(args: argparse.Namespace) -> None:
+    if not args.prune_operator_cache:
+        return
+    tool = container_tool(args)
+    run_cleanup_command([tool, "image", "prune", "-f"])
+    run_cleanup_command([tool, "builder", "prune", "-f"])
+
+
 def cleanup_operator_archives(archive_dir: Path) -> None:
     removed = 0
     for archive in sorted(archive_dir.glob("*.tar")):
@@ -853,6 +861,7 @@ def generate_bundle(
         f'MIGRATION_CONTAINER_TOOL="${{MIGRATION_CONTAINER_TOOL:-{args.container_tool}}}"\n'
         f'MIGRATION_RKE2_IMPORT_IMAGES="${{MIGRATION_RKE2_IMPORT_IMAGES:-{str(args.rke2_import_images).lower()}}}"\n'
         f'MIGRATION_CLEANUP_OPERATOR_IMAGES="${{MIGRATION_CLEANUP_OPERATOR_IMAGES:-{str(args.cleanup_operator_images).lower()}}}"\n'
+        f'MIGRATION_PRUNE_OPERATOR_CACHE="${{MIGRATION_PRUNE_OPERATOR_CACHE:-{str(args.prune_operator_cache).lower()}}}"\n'
         f'MIGRATION_SKIP_DOCKER_SOCKET_SERVICES="${{MIGRATION_SKIP_DOCKER_SOCKET_SERVICES:-{str(args.skip_docker_socket_services).lower()}}}"\n'
         f'MIGRATION_REGISTRY="${{MIGRATION_REGISTRY:-{args.registry}}}"\n'
         f'MIGRATION_IMAGE_TAG="${{MIGRATION_IMAGE_TAG:-{args.image_tag}}}"\n'
@@ -865,6 +874,8 @@ def generate_bundle(
         'if [ "$MIGRATION_RKE2_IMPORT_IMAGES" = "false" ]; then RKE2_IMPORT_FLAG="--no-rke2-import-images"; fi\n'
         'CLEANUP_OPERATOR_IMAGES_FLAG="--cleanup-operator-images"\n'
         'if [ "$MIGRATION_CLEANUP_OPERATOR_IMAGES" = "false" ]; then CLEANUP_OPERATOR_IMAGES_FLAG="--no-cleanup-operator-images"; fi\n'
+        'PRUNE_OPERATOR_CACHE_FLAG="--prune-operator-cache"\n'
+        'if [ "$MIGRATION_PRUNE_OPERATOR_CACHE" = "false" ]; then PRUNE_OPERATOR_CACHE_FLAG="--no-prune-operator-cache"; fi\n'
         'DOCKER_SOCKET_FLAG="--skip-docker-socket-services"\n'
         'if [ "$MIGRATION_SKIP_DOCKER_SOCKET_SERVICES" = "false" ]; then DOCKER_SOCKET_FLAG="--include-docker-socket-services"; fi\n'
     )
@@ -878,7 +889,7 @@ def generate_bundle(
         '--ssh-user "$MIGRATION_SSH_USER" --ssh-key "$MIGRATION_SSH_KEY" '
         '--become-password-file "$MIGRATION_BECOME_PASSWORD_FILE" '
         '--container-tool "$MIGRATION_CONTAINER_TOOL" '
-        '$RKE2_IMPORT_FLAG $CLEANUP_OPERATOR_IMAGES_FLAG $DOCKER_SOCKET_FLAG '
+        '$RKE2_IMPORT_FLAG $CLEANUP_OPERATOR_IMAGES_FLAG $PRUNE_OPERATOR_CACHE_FLAG $DOCKER_SOCKET_FLAG '
         '--registry "$MIGRATION_REGISTRY" --image-tag "$MIGRATION_IMAGE_TAG" '
         '--dump-dir "$MIGRATION_DUMP_DIR" --db-targets "$MIGRATION_DB_TARGETS" '
         '--execute $ALLOW_FLAG '
@@ -1027,10 +1038,11 @@ def stage_images(args: argparse.Namespace, project_path: Path, service_pairs: li
             failed.append(f"{record.file}::{record.name} ({exc.cmd})")
     if args.image_mode == "preload":
         archives_copied = preload_archives_to_nodes(args, archive_dir)
-        if args.cleanup_operator_images and archives_copied:
+        if args.cleanup_operator_images:
             cleanup_operator_archives(archive_dir)
     if args.cleanup_operator_images:
         cleanup_operator_container_tags(args, generated_images + pulled_source_images)
+        prune_operator_container_cache(args)
     if skipped:
         print("Skipped image candidates:")
         for item in skipped:
@@ -1320,6 +1332,8 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     parser.add_argument("--no-rke2-import-images", dest="rke2_import_images", action="store_false")
     parser.add_argument("--cleanup-operator-images", dest="cleanup_operator_images", action="store_true", default=True)
     parser.add_argument("--no-cleanup-operator-images", dest="cleanup_operator_images", action="store_false")
+    parser.add_argument("--prune-operator-cache", dest="prune_operator_cache", action="store_true", default=True)
+    parser.add_argument("--no-prune-operator-cache", dest="prune_operator_cache", action="store_false")
     parser.add_argument("--skip-docker-socket-services", dest="skip_docker_socket_services", action="store_true", default=True)
     parser.add_argument("--include-docker-socket-services", dest="skip_docker_socket_services", action="store_false")
     parser.add_argument("--registry", default="")
